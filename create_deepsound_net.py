@@ -51,48 +51,7 @@ import wave
 # In[4]:
 
 from caffe import layers as L, params as P
-
-
-
-def get_fft(filename, seconds, label):
-
-    # Read in
-    data = wav.read(filename)
-    rate = data[0]
-    data = data[1]
-    data = data.astype(np.float32)/(np.max(data)*2.0)
-    print(np.max(data))
-    # Convert to mono
-    if(data.ndim > 1):
-        data = np.sum(data, axis=1)
-    print data.shape
-
-    things = int(len(data)/(rate*seconds))
-    print("things: " + str(things))
-    data = data[0:int(rate*seconds*things)]
-    allthedata = [data[start:int(start + seconds*rate)] for start in range(0, things) ]
-
-    fftdata = []
-    labeldata = []
-    for data in allthedata:
-
-        data.resize( len(data)/fftwidth, fftwidth)
-
-        # Get fft and separate out magnitude and phase
-        data = np.fft.fft(data, fftwidth, axis=1)
-        mag= np.absolute(data)
-        phase = np.angle(data)
-        fftdata += [[mag, phase]]
-        
-        # labelmag = np.copy(mag)
-        # labelphase = np.copy(phase)
-        # np.zeros(labelmag.shape)
-        # np.zeros(labelphase.shape)
-        # labelmag[label] = 1
-
-        labeldata += [label]
-
-    return [fftdata, labeldata]
+from sound_functions import get_fft
 
 
 
@@ -100,8 +59,6 @@ def get_fft(filename, seconds, label):
 
 
 
-rate = 44100
-fftwidth = int(rate/30)
 
 folder = '../sounds'
 files = [f for f in listdir(folder) if isfile(join(folder, f))]
@@ -109,21 +66,36 @@ input_data = []
 input_labels = []
 test_data = []
 test_labels = []
-numtests = 1
+batch_size = 10
+numtests = 10
 test_seconds = 1.0
 
 for i in range(0, len(files)):
-
-    [nextfft, nextlabel] = get_fft(folder + '/' + files[i], test_seconds, i)
+    label = int(files[i][:2])
+    [nextfft, nextlabel] = get_fft(folder + '/' + files[i], test_seconds, label)
     input_data += nextfft
     input_labels += nextlabel
 #print input_labels
 #print input_data
 
+total_size = len(input_data) - len(input_data)%batch_size
+print "total_size = " + str(total_size)
+
+
+def shuffle_in_unison_inplace(a, b):
+    assert len(a) == len(b)
+    p = np.random.permutation(len(a))
+    return a[p], b[p]
+
+[input_data, input_labels] = shuffle_in_unison_inplace(np.array(input_data), np.array(input_labels))
+
 test_data = np.array(input_data[0:numtests], dtype=np.float32)
-input_data = np.array(input_data[numtests:], dtype=np.float32)
+input_data = np.array(input_data[numtests:total_size], dtype=np.float32)
 test_labels = np.array(input_labels[0:numtests], dtype=np.float32)
-input_labels = np.array(input_labels[numtests:], dtype=np.float32) 
+input_labels = np.array(input_labels[numtests:total_size], dtype=np.float32) 
+
+
+
 
 
 
@@ -269,19 +241,19 @@ test_interval = 25
 # losses will also be stored in the log
 train_loss = np.zeros(niter)
 test_acc = np.zeros(int(np.ceil(niter / test_interval)))
-output = np.zeros((niter, 1, 30))
+output = np.zeros((niter, 10, 30))
 
 # the main solver loop
 for it in range(niter):
     solver.step(1)  # SGD by Caffe
     
     # store the train loss
-    train_loss[it] = solver.net.blobs['loss'].data
+    #train_loss[it] = solver.net.blobs['loss'].data
     
     # store the output on the first test batch
     # (start the forward pass at conv1 to avoid loading new data)
-    solver.test_nets[0].forward(start='conv1')
-    output[it] = solver.test_nets[0].blobs['score'].data[:30]
+    #solver.test_nets[0].forward(start='conv1')
+    #output[it] = solver.test_nets[0].blobs['score'].data[:30]
     
     # run a full test every so often
     # (Caffe can also do this for us and write to a log, but we show here
@@ -291,22 +263,27 @@ for it in range(niter):
         correct = 0
         for test_it in range(100):
             solver.test_nets[0].forward()
+            print "hypothesis: " + str(solver.test_nets[0].blobs['score'].data.argmax(1))
+            print "actual: " + str(solver.test_nets[0].blobs['label'].data)
+            print "loss: " + str(solver.test_nets[0].blobs['loss'].data)
+            #print "raw: " + str(solver.test_nets[0].blobs['score'].data)
             correct += sum(solver.test_nets[0].blobs['score'].data.argmax(1)
                            == solver.test_nets[0].blobs['label'].data)
-        test_acc[it // test_interval] = correct / 1e4
+        
+        #test_acc[it // test_interval] = correct / 1e4
 
 # * Let's plot the train loss and test accuracy.
 
 # In[16]:
 sys.exit()
-_, ax1 = subplots()
-ax2 = ax1.twinx()
-ax1.plot(arange(niter), train_loss)
-ax2.plot(test_interval * arange(len(test_acc)), test_acc, 'r')
-ax1.set_xlabel('iteration')
-ax1.set_ylabel('train loss')
-ax2.set_ylabel('test accuracy')
-ax2.set_title('Test Accuracy: {:.2f}'.format(test_acc[-1]))
+# _, ax1 = subplots()
+# ax2 = ax1.twinx()
+# ax1.plot(arange(niter), train_loss)
+# ax2.plot(test_interval * arange(len(test_acc)), test_acc, 'r')
+# ax1.set_xlabel('iteration')
+# ax1.set_ylabel('train loss')
+# ax2.set_ylabel('test accuracy')
+# ax2.set_title('Test Accuracy: {:.2f}'.format(test_acc[-1]))
 
 
 # The loss seems to have dropped quickly and coverged (except for stochasticity), while the accuracy rose correspondingly. Hooray!

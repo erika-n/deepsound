@@ -4,7 +4,7 @@ layer {
   top: "data"
   top: "label"
   memory_data_param {
-    batch_size: 10
+    batch_size: 1
     channels: 2
     height: 30
     width: 1470
@@ -102,13 +102,19 @@ layer {
   }
 }
 
+layer {
+  name: "outlabel"
+  type: "Softmax"
+  bottom: "score"
+  top: "outlabel"
+}
 
 
 layer {
   name: "loss"
   type: "SoftmaxWithLoss"
-
   bottom: "score"
   bottom: "label"
   top: "loss"
 }
+
