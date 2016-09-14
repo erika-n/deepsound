@@ -10,7 +10,7 @@ def get_fft(filename, seconds, label):
     rate = data[0]
     fftwidth = rate/30
     data = data[1]
-    data = data.astype(np.float32)/(np.max(data)*2.0)
+    data = 255.0*data.astype(np.float32)/(np.max(data)*2.0)
     print(np.max(data))
     # Convert to mono
     if(data.ndim > 1):
@@ -24,9 +24,11 @@ def get_fft(filename, seconds, label):
     
     print "label = " + str(label)
     fftdata = []
-    labels = np.zeros((len(allthedata[0])/fftwidth, fftwidth))
-    print labels.shape
-    labels[0][label] = 1.0
+    #labels = np.zeros((len(allthedata[0])/fftwidth, fftwidth))
+    #print labels.shape
+    #labels[0][label] = 1.0
+    thelabel = np.array([label])
+
     labeldata = []
     for data in allthedata:
 
@@ -35,9 +37,14 @@ def get_fft(filename, seconds, label):
         # Get fft and separate out magnitude and phase
         data = np.fft.fft(data, fftwidth, axis=1)
         mag= np.absolute(data)
+        mag = 255*(mag/ (np.max(mag)*2))
+        
         phase = np.angle(data)
-        fftdata += [[mag, phase]]
-        labeldata += [label]
+        phase = phase + 2*np.pi
+        phase = 255*(phase/(np.max(phase)*2))
+        
+        fftdata += [[mag]]
+        labeldata.append(label)
         
 
 

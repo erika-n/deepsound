@@ -116,14 +116,14 @@ net.set_input_arrays(np.array(a_song_data, dtype=np.float32), np.array(a_song_la
 # In[ ]:
 
 # copy the image data into the memory allocated for the net
-net.blobs['data'].data[...] = a_song_data[15]
-net.blobs['label'].data[...] = a_song_labels[15]
+net.blobs['data'].data[...] = a_song_data[12]
+net.blobs['label'].data[...] = a_song_labels[12]
 # ### perform classification
-output = net.forward()
+net.forward()
 
-output_prob = output['outlabel'][0]  # the output probability vector for the first image in the batch
 
-print 'predicted class is:', output_prob.argmax()
+
+print 'predicted class is:' + str(net.blobs['score'].data.argmax(1))
 print net.blobs['score'].data
 print net.blobs['loss'].data
 sys.exit()

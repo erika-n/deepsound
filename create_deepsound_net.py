@@ -6,7 +6,7 @@
 # In[2]:
 
 caffe_root = '/home/erika/projects/caffe/'  # this file should be run from {caffe_root}/examples (otherwise change this line)
-
+from pprint import pprint
 import sys
 sys.path.insert(0, caffe_root + 'python')
 import caffe
@@ -66,19 +66,34 @@ input_data = []
 input_labels = []
 test_data = []
 test_labels = []
-batch_size = 10
-numtests = 10
+batch_size = 1
+numtests = 20
 test_seconds = 1.0
-
+input_data = [];
+tmp_input_labels = [];
 for i in range(0, len(files)):
     label = int(files[i][:2])
     [nextfft, nextlabel] = get_fft(folder + '/' + files[i], test_seconds, label)
     input_data += nextfft
-    input_labels += nextlabel
-#print input_labels
-#print input_data
+    tmp_input_labels += [label for i in range(len(nextfft))]
 
-total_size = len(input_data) - len(input_data)%batch_size
+input_data = np.array(input_data)
+input_labels = np.ndarray(len(tmp_input_labels))
+for i in range(len(tmp_input_labels)):
+    input_labels[i]= tmp_input_labels[i]
+
+labels = np.ascontiguousarray(input_labels[:, np.newaxis, np.newaxis,
+                                             np.newaxis])
+
+
+
+
+
+
+
+
+
+total_size = len(input_data) - (len(input_data)%batch_size)
 print "total_size = " + str(total_size)
 
 
@@ -87,15 +102,29 @@ def shuffle_in_unison_inplace(a, b):
     p = np.random.permutation(len(a))
     return a[p], b[p]
 
-[input_data, input_labels] = shuffle_in_unison_inplace(np.array(input_data), np.array(input_labels))
 
-test_data = np.array(input_data[0:numtests], dtype=np.float32)
+
+
+
+
+[input_data, input_labels] = shuffle_in_unison_inplace(input_data, input_labels)
+
+print "max, min: "
+print np.max(input_data)
+print np.min(input_data)
+
+
+test_data = np.copy(input_data)
+test_data = np.array(test_data[0:numtests], dtype=np.float32)
 input_data = np.array(input_data[numtests:total_size], dtype=np.float32)
-test_labels = np.array(input_labels[0:numtests], dtype=np.float32)
+
+test_labels = np.copy(input_labels)
+test_labels = np.array(test_labels[0:numtests], dtype=np.float32)
 input_labels = np.array(input_labels[numtests:total_size], dtype=np.float32) 
-
-
-
+input_labels.reshape((input_labels.shape[0]))
+test_labels.reshape((test_labels.shape[0]))
+print input_data.shape
+print input_labels.shape
 
 
 
@@ -149,21 +178,17 @@ def lenet(batch_size):
 #caffe.set_device(0)
 #caffe.set_mode_gpu()
 
-
+print "input data and labels: "
+print input_data.shape
+print input_labels.shape
 ### load the solver and create train and test nets
 solver = None  # ignore this workaround for lmdb data (can't instantiate two solvers on the same data)
 solver = caffe.SGDSolver('solver.prototxt')
 net = solver.net
-
-
-print "input data and labels: "
-print input_data.shape
-print input_labels.shape
 net.set_input_arrays(input_data, input_labels)
 
 testnet = solver.test_nets[0]
-
-testnet.set_input_arrays(input_data, input_labels)
+testnet.set_input_arrays(test_data, test_labels)
 # * To get an idea of the architecture of our net, we can check the dimensions of the intermediate features (blobs) and parameters (these will also be useful to refer to when manipulating data later).
 
 # In[8]:
@@ -177,6 +202,12 @@ print [(k, v.data.shape) for k, v in solver.net.blobs.items()]
 # just print the weight sizes (we'll omit the biases)
 print[(k, v[0].data.shape) for k, v in solver.net.params.items()]
 
+solver.net.forward()  # train net
+pprint (input_labels)
+solver.test_nets[0].forward() 
+#pprint (solver.net.blobs['label'].data)
+pprint (solver.test_nets[0].blobs['label'].data)
+print(solver.net.blobs['label'].data.shape)
 
 # * Before taking off, let's check that everything is loaded as we expect. We'll run a forward pass on the train and test nets and check that they contain our data.
 
@@ -185,8 +216,8 @@ solver.net.forward()  # train net
 
 solver.test_nets[0].forward()  # test net (there can be more than one)
 
-
-
+#pprint (solver.net.blobs['label'].data)
+pprint (solver.test_nets[0].blobs['label'].data)
 
 # In[11]:
 
@@ -211,7 +242,7 @@ print 'test labels:', solver.test_nets[0].blobs['label'].data[:]
 
 # In[13]:
 
-solver.step(1)
+
 
 
 # Do we have gradients propagating through our filters? Let's see the updates to the first layer, shown here as a $4 \times 5$ grid of $5 \times 5$ filters.
@@ -236,8 +267,8 @@ solver.step(1)
 # In[15]:
 
 
-niter = 200
-test_interval = 25
+niter = 50
+test_interval = 1
 # losses will also be stored in the log
 train_loss = np.zeros(niter)
 test_acc = np.zeros(int(np.ceil(niter / test_interval)))
@@ -245,7 +276,7 @@ output = np.zeros((niter, 10, 30))
 
 # the main solver loop
 for it in range(niter):
-    solver.step(1)  # SGD by Caffe
+    
     
     # store the train loss
     #train_loss[it] = solver.net.blobs['loss'].data
@@ -258,18 +289,20 @@ for it in range(niter):
     # run a full test every so often
     # (Caffe can also do this for us and write to a log, but we show here
     #  how to do it directly in Python, where more complicated things are easier.)
-    if it % test_interval == 0:
+    if it == 0 or it % test_interval == 0:
         print 'Iteration', it, 'testing...'
         correct = 0
-        for test_it in range(100):
+        for test_it in range(3):
             solver.test_nets[0].forward()
             print "hypothesis: " + str(solver.test_nets[0].blobs['score'].data.argmax(1))
             print "actual: " + str(solver.test_nets[0].blobs['label'].data)
+            #pprint (solver.test_nets[0].blobs['data'].data)
             print "loss: " + str(solver.test_nets[0].blobs['loss'].data)
-            #print "raw: " + str(solver.test_nets[0].blobs['score'].data)
+            #pprint(solver.test_nets[0].blobs['score'].data)
             correct += sum(solver.test_nets[0].blobs['score'].data.argmax(1)
                            == solver.test_nets[0].blobs['label'].data)
-        
+    
+    solver.step(1)  # SGD by Caffe
         #test_acc[it // test_interval] = correct / 1e4
 
 # * Let's plot the train loss and test accuracy.

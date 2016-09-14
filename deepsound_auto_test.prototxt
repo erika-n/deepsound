@@ -4,12 +4,14 @@ layer {
   top: "data"
   top: "label"
   memory_data_param {
-    batch_size: 10
-    channels: 2
+    batch_size: 1
+    channels: 1
     height: 30
     width: 1470
   }
 }
+
+
 layer {
   name: "conv1"
   type: "Convolution"
@@ -23,9 +25,6 @@ layer {
     }
   }
 }
-
-
-
 layer {
   name: "pool1"
   type: "Pooling"
@@ -37,8 +36,6 @@ layer {
     stride: 2
   }
 }
-
-
 layer {
   name: "conv2"
   type: "Convolution"
@@ -52,9 +49,6 @@ layer {
     }
   }
 }
-
-
-
 layer {
   name: "pool2"
   type: "Pooling"
@@ -66,8 +60,6 @@ layer {
     stride: 2
   }
 }
-
-
 layer {
   name: "fc1"
   type: "InnerProduct"
@@ -80,15 +72,12 @@ layer {
     }
   }
 }
-
-
 layer {
   name: "relu1"
   type: "ReLU"
   bottom: "fc1"
   top: "fc1"
 }
-
 layer {
   name: "score"
   type: "InnerProduct"
@@ -103,11 +92,9 @@ layer {
 }
 
 
-
 layer {
   name: "loss"
   type: "SoftmaxWithLoss"
-
   bottom: "score"
   bottom: "label"
   top: "loss"
