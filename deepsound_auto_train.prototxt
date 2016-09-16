@@ -6,16 +6,30 @@ layer {
   memory_data_param {
     batch_size: 1
     channels: 1
-    height: 30
+    height: 120
     width: 1470
   }
 }
 
+layer {
+  name: "dummydata"
+  type: "Reshape"
+  bottom: "data"
+  top: "dummydata"
+  reshape_param {
+    shape {
+      dim: 0
+      dim: 0
+      dim: 0
+      dim: 0 
+    }
+  }
+}
 
 layer {
   name: "conv1"
   type: "Convolution"
-  bottom: "data"
+  bottom: "dummydata"
   top: "conv1"
   convolution_param {
     num_output: 20
