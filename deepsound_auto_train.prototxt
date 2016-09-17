@@ -11,25 +11,12 @@ layer {
   }
 }
 
-layer {
-  name: "dummydata"
-  type: "Reshape"
-  bottom: "data"
-  top: "dummydata"
-  reshape_param {
-    shape {
-      dim: 0
-      dim: 0
-      dim: 0
-      dim: 0 
-    }
-  }
-}
+
 
 layer {
   name: "conv1"
   type: "Convolution"
-  bottom: "dummydata"
+  bottom: "data"
   top: "conv1"
   convolution_param {
     num_output: 20
