@@ -15,7 +15,7 @@ import caffe
 def objective_L2(dst):
 	dst.diff[:] = dst.data 
 
-def make_step(net, step_size=500, end='fc1',
+def make_step(net, step_size=10000, end='fc1',
 	jitter=32, clip=True, objective=objective_L2, datanum=0):
 	'''Basic gradient ascent step.'''
 
@@ -31,7 +31,8 @@ def make_step(net, step_size=500, end='fc1',
 	g = src.diff[0]
 
 	print g.shape
-
+	print "g = "
+	pprint(g)
 	# apply normalized ascent step to the input imag
 	ascent = step_size/np.abs(g).mean() * g
 
@@ -55,15 +56,15 @@ def make_step(net, step_size=500, end='fc1',
 
 caffe.set_mode_cpu()
 
-model_def = 'deepsound_production.prototxt'
-model_weights = 'soundnet/wishyouwerehere.caffemodel'
+model_def = 'soundnet/deepsound_simplenet_train.prototxt'
+model_weights = 'soundnet/notquite.caffemodel'
 
 net = caffe.Net(model_def,      # defines the structure of the model
                 model_weights,  # contains the trained weights
                 caffe.TEST)     # use test mode (e.g., don't perform dropout)
 
 
-[a_song_data, a_song_labels] = get_fft('../moresounds/14nightchorus.wav', 1, 14, 1)
+[a_song_data, a_song_labels] = get_fft('../sounds/03orangecrush.wav', 0.5, 3, 1)
 
 
 

@@ -5,13 +5,12 @@ import math
 from pprint import pprint
 
 rate = 44100
-bytes_per_sample = 2
 def get_fft(filename, seconds, label, max_out = 0):
 
     # Read in
     data = wav.read(filename)
     
-    fftwidth = rate/100
+    fftwidth = rate*2
     data = np.array(data[1], dtype=np.float32)
     
     #data = 255.0*data.astype(np.float32)/(np.max(data)*2.0)
@@ -21,12 +20,12 @@ def get_fft(filename, seconds, label, max_out = 0):
         data = np.sum(data, axis=1)
     print data.shape
 
-    things = int(float(len(data))/(rate*seconds*bytes_per_sample))
+    things = int(float(len(data))/(rate*seconds*2))
     
     if(max_out > 0):
         things = min(things, max_out)
     print "things: " + str(things)
-    m = seconds*rate*bytes_per_sample
+    m = seconds*rate*2
     data = data[0:int(m*things)]
     
 
@@ -49,25 +48,24 @@ def get_fft(filename, seconds, label, max_out = 0):
 
     labeldata = []
     for data in allthedata:
-        data.resize( len(data)/fftwidth, fftwidth)
+        #data.resize( len(data)/fftwidth, fftwidth) TMPDEBUG
 
         # Get fft and separate out magnitude and phase
-        data = np.fft.fft(data, fftwidth, axis=1)
+        #data = np.fft.fft(data, fftwidth, axis=1) TMPDEBUG
+        data = np.fft.fft(data)
+        print "data in.shape:"
+        print data.shape
         mag= np.absolute(data)
         #mag  = 255*mag/ (np.max(mag))
         phase = np.angle(data)
         #phase = phase + 2*np.pi
        
 
-        print "there: "
-        print "mag: "
-        pprint(mag)
-        print "phase: "
-        pprint(phase)
+
         mp = np.concatenate((mag, phase))
     
         print(mp.shape)
-        fftdata += [[mp]]
+        fftdata += [[[mp]]]
         labeldata.append(label)
         
 
@@ -81,19 +79,16 @@ def save_wav(filename, allthedata):
 
     allthedata = np.array(allthedata)
     print allthedata.shape
-    outdata = np.ndarray((allthedata.shape[0], allthedata.shape[2]*allthedata.shape[3]/2), dtype=np.int16)
+    #outdata = np.ndarray((allthedata.shape[0], allthedata.shape[3]/2), dtype=np.int16)
+    outdata = []
     for i in range(allthedata.shape[0]):
         data = allthedata[i]
-        data = data[0]
+        data = data[0][0]
         data = np.array(data)
         mag = data[:data.shape[0]/2]
         phase = data[data.shape[0]/2:]
         
-        print "back: "
-        print "mag: "
-        pprint(mag)
-        print "phase: "
-        pprint(phase)
+
 
         #mag = mag*8000
         data = mag_phase_to_complex(mag, phase)
@@ -102,37 +97,41 @@ def save_wav(filename, allthedata):
         #convert back to sound data
         print "save_wav data.shape:"
         print data.shape
-        data = np.fft.irfft(data, data.shape[1], axis=1)
+        #data = np.fft.irfft(data, data.shape[1], axis=1) #TMPDEBUG
+        data = np.fft.irfft(data)
         
         data = 0.75*data
 
         # # Put data back in the right format
-        data = np.reshape(data, (data.shape[0]*data.shape[1]))
-        #data = data/2.0
+        #data = np.reshape(data, (data.shape[0]*data.shape[1])) #TMPDEBUG
+        data = data/2.0
         #data = 30000*data
         data = np.int16(data)
         print("data:")
         pprint(data)
         print data.shape
-        outdata[i][:] = data
+        outdata += [data]
         
     
     print("outdata:")
+    pprint(outdata)
     print "final data length: "
+    mydata = np.ndarray((1), dtype=np.int16)
+    for data in outdata:
+        mydata = np.append(mydata, data)
     
-    
-    mydata = np.reshape(outdata, (outdata.shape[0]*outdata.shape[1]))
+    #mydata = np.reshape(outdata, (outdata.shape[0]*outdata.shape[1]))
 
     print mydata.shape
 
-    monodata = np.append(mydata, np.zeros(mydata.shape, dtype=np.int16))
-    pprint(mydata)
+    #monodata = np.append(mydata, np.zeros(mydata.shape, dtype=np.int16))
+    #pprint(mydata)
     
     # Write to disk
     rate = 44100
     output_file = wave.open(filename, "w")
     output_file.setparams((1, 2, rate, 0, "NONE", "not compressed"))
-    output_file.writeframes(monodata)
+    output_file.writeframes(mydata)
     output_file.close()
 
 

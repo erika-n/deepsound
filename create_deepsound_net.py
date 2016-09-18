@@ -13,7 +13,7 @@ from pylab import *
 
 # * Import `caffe`, adding it to `sys.path` if needed. Make sure you've built pycaffe.
 
-
+solver_file = 'soundnet/simplesolver.prototxt'
 caffe_root = '/home/erika/projects/caffe/'  # this file should be run from {caffe_root}/examples (otherwise change this line)
 
 import sys
@@ -43,7 +43,7 @@ def preprocess_data():
     test_labels = []
     batch_size = 1
     numtests = 2
-    test_seconds = 1
+    test_seconds = 0.5
     input_data = []
     tmp_input_labels = []
     num_per_song = 10
@@ -157,10 +157,11 @@ def lenet(batch_size):
 
 ### load the solver and create train and test nets
 solver = None  # ignore this workaround for lmdb data (can't instantiate two solvers on the same data)
-solver = caffe.SGDSolver('solver.prototxt')
+solver = caffe.SGDSolver(solver_file)
 net = solver.net
 
-
+print "setting input arrays. input_data.shape:"
+print input_data.shape
 
 net.set_input_arrays(input_data, input_labels)
 
