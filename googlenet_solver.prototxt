@@ -1,30 +1,29 @@
-# The train/test net protocol buffer definition
-train_net: "deepsound_auto_train.prototxt"
-test_net: "deepsound_auto_train.prototxt"
+net: "deepsound_googlenet_learn.prototxt"
+
 # test_iter specifies how many forward passes the test should carry out.
 # In the case of MNIST, we have test batch size 100 and 100 test iterations,
 # covering the full 10,000 testing images.
 test_iter: 10
 # Carry out testing every 500 training iterations.
-test_interval: 500
-iter_size: 1
+test_interval: 5
+iter_size: 7
 # The base learning rate, momentum and the weight decay of the network.
 base_lr: 0.0001
 momentum: 0.9
-weight_decay: 0.0005
+weight_decay: 0.00005
 # The learning rate policy
-lr_policy: "inv"
+lr_policy: "step"
 
 stepsize: 100000
-gamma: 0.0001
-power: 0.75
+gamma: 0.001
+power: 0.5
 # Display every 100 iterations
-display: 10
+display: 5
 # The maximum number of iterations
-max_iter: 1000
+max_iter: 100
 # snapshot intermediate results
 snapshot: 50
 snapshot_prefix: "soundnet/soundnet"
 # solver mode: CPU or GPU
-solver_mode: GPU
-random_seed: 100
+solver_mode: CPU
+random_seed: 98

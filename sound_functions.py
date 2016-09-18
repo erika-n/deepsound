@@ -11,22 +11,35 @@ def get_fft(filename, seconds, label, max_out = 0):
     # Read in
     data = wav.read(filename)
     
-    fftwidth = rate/30
-    data = data[1]
-    data = 255.0*data.astype(np.float32)/(np.max(data)*2.0)
+    fftwidth = rate/100
+    data = np.array(data[1], dtype=np.float32)
+    
+    #data = 255.0*data.astype(np.float32)/(np.max(data)*2.0)
     #print(np.max(data))
     # Convert to mono
     if(data.ndim > 1):
         data = np.sum(data, axis=1)
     print data.shape
 
-    things = int(len(data)/(rate*seconds*bytes_per_sample))
+    things = int(float(len(data))/(rate*seconds*bytes_per_sample))
+    
     if(max_out > 0):
         things = min(things, max_out)
-    print("things: " + str(things))
-    data = data[0:int(rate*seconds*things)]
-    allthedata = [data[start:int(start + seconds*rate*bytes_per_sample)] for start in range(0, things) ]
+    print "things: " + str(things)
+    m = seconds*rate*bytes_per_sample
+    data = data[0:int(m*things)]
     
+
+    allthedata = []
+    for i in range(0, things):
+        l = int(m*i)
+        h = int(m*(i+1))
+
+        dataslice = data[l:h ]
+
+
+        allthedata += [dataslice]
+    print np.array(allthedata).shape
     print "label = " + str(label)
     fftdata = []
     #labels = np.zeros((len(allthedata[0])/fftwidth, fftwidth))
@@ -41,15 +54,19 @@ def get_fft(filename, seconds, label, max_out = 0):
         # Get fft and separate out magnitude and phase
         data = np.fft.fft(data, fftwidth, axis=1)
         mag= np.absolute(data)
-        mag = 255*(mag/ (np.max(mag)*2))
-        
+        #mag  = 255*mag/ (np.max(mag))
         phase = np.angle(data)
-        phase = phase + 2*np.pi
-        phase = 255*(phase/(np.pi*2))
-        #print("change:")
-        #print(phase.shape)
+        #phase = phase + 2*np.pi
+       
+
+        print "there: "
+        print "mag: "
+        pprint(mag)
+        print "phase: "
+        pprint(phase)
         mp = np.concatenate((mag, phase))
-        #print(mp.shape)
+    
+        print(mp.shape)
         fftdata += [[mp]]
         labeldata.append(label)
         
@@ -71,15 +88,23 @@ def save_wav(filename, allthedata):
         data = np.array(data)
         mag = data[:data.shape[0]/2]
         phase = data[data.shape[0]/2:]
-        phase = 2.0*np.pi*phase/255.0
+        
+        print "back: "
+        print "mag: "
+        pprint(mag)
+        print "phase: "
+        pprint(phase)
 
-        mag = mag*2000
+        #mag = mag*8000
         data = mag_phase_to_complex(mag, phase)
 
 
         #convert back to sound data
+        print "save_wav data.shape:"
+        print data.shape
         data = np.fft.irfft(data, data.shape[1], axis=1)
-
+        
+        data = 0.75*data
 
         # # Put data back in the right format
         data = np.reshape(data, (data.shape[0]*data.shape[1]))
@@ -96,14 +121,18 @@ def save_wav(filename, allthedata):
     print "final data length: "
     
     
-    outdata = np.reshape(outdata, (outdata.size))
-    print outdata.shape
-    pprint(outdata)
+    mydata = np.reshape(outdata, (outdata.shape[0]*outdata.shape[1]))
+
+    print mydata.shape
+
+    monodata = np.append(mydata, np.zeros(mydata.shape, dtype=np.int16))
+    pprint(mydata)
+    
     # Write to disk
     rate = 44100
     output_file = wave.open(filename, "w")
     output_file.setparams((1, 2, rate, 0, "NONE", "not compressed"))
-    output_file.writeframes(outdata)
+    output_file.writeframes(monodata)
     output_file.close()
 
 

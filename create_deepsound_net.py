@@ -9,6 +9,7 @@ import numpy as np
 import scipy.io.wavfile as wav
 import wave
 
+from pylab import *
 
 # * Import `caffe`, adding it to `sys.path` if needed. Make sure you've built pycaffe.
 
@@ -19,82 +20,103 @@ import sys
 sys.path.insert(0, caffe_root + 'python')
 import caffe
 
+os.environ["GLOG_minloglevel"] = "4"
+
 from caffe import layers as L, params as P
 
 from sound_functions import get_fft
 
 
+def shuffle_in_unison_inplace(a, b):
+    assert len(a) == len(b)
+    p = np.random.permutation(len(a))
+    return a[p], b[p]
+
+
 def preprocess_data():
 
-    folder = '../sounds'
+    folder = '../sounds/'
     files = [f for f in listdir(folder) if isfile(join(folder, f))]
     input_data = []
     input_labels = []
     test_data = []
     test_labels = []
     batch_size = 1
-    numtests = 20
-    test_seconds = 2.0
+    numtests = 2
+    test_seconds = 1
     input_data = []
     tmp_input_labels = []
-    num_per_song = 30
-    for i in range(0, len(files)):
+    num_per_song = 10
+    for i in range(len(files)):
         label = int(files[i][:2])
         [nextfft, nextlabel] = get_fft(folder + '/' + files[i], test_seconds, label, num_per_song)
-        input_data += nextfft
-        tmp_input_labels += [label for i in range(len(nextfft))]
+        input_data += nextfft[1:]
+        tmp_input_labels += [label for i in range(len(nextfft) - 1)]
+        test_data += [nextfft[0]]
+        test_labels += [label]
+
+
+
 
     input_data = np.array(input_data)
     input_labels = np.ndarray(len(tmp_input_labels))
     for i in range(len(tmp_input_labels)):
         input_labels[i]= tmp_input_labels[i]
 
+
+    #meaninput = np.average(input_data, axis=0)
+    #meaninput = meaninput.reshape((input_data.shape))
+    #print meaninput.shape
+
+    #print input_data.shape
+    #input_data = input_data - meaninput + 0.5
+    #test_data = test_data - meaninput + 0.5
+
     input_labels = np.ascontiguousarray(input_labels[:, np.newaxis, np.newaxis,
                                                  np.newaxis])
 
 
-
+    #input_data = np.copy(input_data[15:])
+    #input_labels = np.copy(input_labels[15:])
     total_size = len(input_data) - (len(input_data)%batch_size)
     print "total_size = " + str(total_size)
 
 
-    def shuffle_in_unison_inplace(a, b):
-        assert len(a) == len(b)
-        p = np.random.permutation(len(a))
-        return a[p], b[p]
 
 
+    #right now I don't have enough data so making lots more to shuffle.
 
 
+    
 
     [input_data, input_labels] = shuffle_in_unison_inplace(input_data, input_labels)
 
-    print "max, min: "
+    print "max, min, average: "
     print np.max(input_data)
     print np.min(input_data)
+    print np.average(input_data)
 
-    test_data = np.copy(input_data)
-    test_data = np.array(test_data[0:numtests], dtype=np.float32)
-    input_data = np.array(input_data[numtests:total_size], dtype=np.float32)
+    
+    test_data = np.array(test_data, dtype=np.float32)
+    input_data = np.array(input_data, dtype=np.float32)
 
-    test_labels = np.copy(input_labels)
-    test_labels = np.array(test_labels[0:numtests], dtype=np.float32)
-    input_labels = np.array(input_labels[numtests:total_size], dtype=np.float32) 
-    input_labels.reshape((input_labels.shape[0]))
-    test_labels.reshape((test_labels.shape[0]))
+    test_labels = np.array(test_labels, dtype=np.float32)
+    input_labels = np.array(input_labels, dtype=np.float32)
 
 
-    nearest_multiple = input_data.shape[0] - input_data.shape[0]%batch_size
-    input_data = input_data[:nearest_multiple]
-    input_labels = input_labels[:nearest_multiple]
+
     print "data, labels shapes: "
     print input_data.shape
     print input_labels.shape
+    print "test, test labels shapes:"
+    print test_data.shape
+    print test_labels.shape
+
     np.save('preprocessed_sound.npy', [input_data, input_labels, test_data, test_labels])
     return [input_data, input_labels, test_data, test_labels]
 
 
-process_data = False
+process_data = True
 if(process_data):
     [input_data, input_labels, test_data, test_labels] = preprocess_data()
 else:
@@ -137,6 +159,9 @@ def lenet(batch_size):
 solver = None  # ignore this workaround for lmdb data (can't instantiate two solvers on the same data)
 solver = caffe.SGDSolver('solver.prototxt')
 net = solver.net
+
+
+
 net.set_input_arrays(input_data, input_labels)
 
 testnet = solver.test_nets[0]
@@ -162,8 +187,6 @@ solver.net.forward()  # train net
 
 solver.test_nets[0].forward()  # test net (there can be more than one)
 
-#pprint (solver.net.blobs['label'].data)
-pprint (solver.test_nets[0].blobs['label'].data)
 
 # In[11]:
 
@@ -171,8 +194,8 @@ pprint (solver.test_nets[0].blobs['label'].data)
 print 'train labels:', solver.net.blobs['label'].data[:]
 print 'test labels:', solver.test_nets[0].blobs['label'].data[:]
 
-
-niter = 100
+imshow(solver.net.blobs['data'].data[0][0], cmap='gray'); axis('off')
+niter = 1000
 test_interval = 1
 # losses will also be stored in the log
 train_loss = np.zeros(niter)
@@ -186,7 +209,7 @@ for it in range(niter):
     # store the train loss
     #train_loss[it] = solver.net.blobs['loss'].data
     
-    # store the output on the first test batch
+    # store the output on the first test batc
     # (start the forward pass at conv1 to avoid loading new data)
     #solver.test_nets[0].forward(start='conv1')
     #output[it] = solver.test_nets[0].blobs['score'].data[:30]
@@ -196,7 +219,6 @@ for it in range(niter):
     #  how to do it directly in Python, where more complicated things are easier.)
     if it == 0 or it % test_interval == 0:
         print 'Iteration', it, 'testing...'
-        correct = 0
         for test_it in range(5):
             solver.test_nets[0].forward()
             # for lenet:
@@ -204,9 +226,15 @@ for it in range(niter):
             print "actual: " + str(solver.test_nets[0].blobs['label'].data)
             print "loss: " + str(solver.test_nets[0].blobs['loss'].data)
             # for google net:
-            # print "hypothesis: " + str(solver.test_nets[0].blobs['loss3/top-1'].data)
+            # print "hypothesis: " + str(solver.test_nets[0].blobs['loss1/classifier'].data.argmax(1))
+            # print "top1:" + str(solver.test_nets[0].blobs['loss1/top-1'].data)
             # print "actual: " + str(solver.test_nets[0].blobs['label'].data)
-            # print "loss: " + str(solver.test_nets[0].blobs['loss3/loss3'].data)            
+            # print "loss: " + str(solver.test_nets[0].blobs['loss1/loss1'].data) 
+
+
+
+
+            #pprint(solver.test_nets[0].blobs['conv1/7x7_s2'].data[0][0:20])           
 
     
     solver.step(1)  # SGD by Caffe

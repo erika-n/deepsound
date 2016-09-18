@@ -6,8 +6,8 @@ layer {
   memory_data_param {
     batch_size: 1
     channels: 1
-    height: 120
-    width: 1470
+    height: 400
+    width: 441
   }
 }
 
@@ -19,7 +19,7 @@ layer {
   bottom: "data"
   top: "conv1"
   convolution_param {
-    num_output: 20
+    num_output: 40
     kernel_size: 5
     weight_filler {
       type: "xavier"
@@ -67,7 +67,7 @@ layer {
   bottom: "pool2"
   top: "fc1"
   inner_product_param {
-    num_output: 500
+    num_output: 400
     weight_filler {
       type: "xavier"
     }
