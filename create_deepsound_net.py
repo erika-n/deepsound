@@ -42,18 +42,18 @@ def preprocess_data():
     test_data = []
     test_labels = []
     batch_size = 1
-    numtests = 2
+    numtests = 20
     test_seconds = 0.5
     input_data = []
     tmp_input_labels = []
-    num_per_song = 10
+    num_per_song = 30
     for i in range(len(files)):
         label = int(files[i][:2])
         [nextfft, nextlabel] = get_fft(folder + '/' + files[i], test_seconds, label, num_per_song)
-        input_data += nextfft[1:]
-        tmp_input_labels += [label for i in range(len(nextfft) - 1)]
-        test_data += [nextfft[0]]
-        test_labels += [label]
+        input_data += nextfft
+        tmp_input_labels += [label for i in range(len(nextfft))]
+        #test_data += [nextfft[0]]
+        #test_labels += [label]
 
 
 
@@ -97,11 +97,11 @@ def preprocess_data():
     print np.average(input_data)
 
     
-    test_data = np.array(test_data, dtype=np.float32)
-    input_data = np.array(input_data, dtype=np.float32)
+    test_data = np.array(input_data[0:numtests], dtype=np.float32)
+    input_data = np.array(input_data[numtests:], dtype=np.float32)
 
-    test_labels = np.array(test_labels, dtype=np.float32)
-    input_labels = np.array(input_labels, dtype=np.float32)
+    test_labels = np.array(input_labels[0:numtests], dtype=np.float32)
+    input_labels = np.array(input_labels[numtests:], dtype=np.float32)
 
 
 

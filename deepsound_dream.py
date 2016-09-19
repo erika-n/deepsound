@@ -15,40 +15,49 @@ import caffe
 def objective_L2(dst):
 	dst.diff[:] = dst.data 
 
-def make_step(net, step_size=10000, end='fc1',
+def make_step(net, mydata, step_size=10000, end='fc2',
 	jitter=32, clip=True, objective=objective_L2, datanum=0):
 	'''Basic gradient ascent step.'''
 
 	src = net.blobs['data'] # input image is stored in Net's 'data' blob
 	dst = net.blobs[end]
-
-	ox, oy = np.random.randint(-jitter, jitter+1, 2)
-	src.data[0] = np.roll(np.roll(src.data[0], ox, -1), oy, -2) # apply jitter shift
-
+	src.data[0][:] = mydata 
+	#ox, oy = np.random.randint(-jitter, jitter+1, 2)
+	#src.data[0] = np.roll(np.roll(src.data[0], ox, -1), oy, -2) # apply jitter shift
+	
+	#rc.data[0][:] = a_song_data[5][:]
+	
+	print "src.data = "
+	pprint(src.data)
 	net.forward(end=end)
 	objective(dst)  # specify the optimization objective 
 	net.backward(start=end) 
+	print "g ="
 	g = src.diff[0]
 
-	print g.shape
-	print "g = "
+
 	pprint(g)
 	# apply normalized ascent step to the input imag
 	ascent = step_size/np.abs(g).mean() * g
+	print "mydata before: "
+	pprint(mydata)
+	print "ascent = "
+	pprint (ascent)
 
-	fade = 0.2
-	src.data[0,0,0:200, :] *= fade
-	src.data[0,0,0:200, :] += ascent[0,0:200,:] 
-	print "max ascent: "
-	print np.max(ascent[0,0:200,:] )
-	#src.data[0] = 0.75*src.data[0]/np.max(np.abs(src.data[0])) #normalize volume
-
-	#src.data[0] = np.roll(np.roll(src.data[0], -ox, -1), -oy, -2) # unshift image
-
-
-	returning = np.copy(src.data[0])
+	print mydata.shape
+	print ascent.shape
+	#fade = 0.3
+	#otherdata1 = fade*mydata
+	#fadeddata = mydata*fade
+	#print "fadeddata: "
+	#pprint(fadeddata)
+	otherdata = np.add(mydata, ascent)
+	#otherdata = np.roll(np.roll(otherdata, -ox, -1), -oy, -2) # unshift image
+	print "otherdata: "
+	pprint(otherdata)
 	
-	return returning
+
+	return np.copy(otherdata)
     #if clip:
     #    bias = net.transformer.mean['data']
     #    src.data[:] = np.clip(src.data, -bias, 255-bias)  
@@ -56,15 +65,15 @@ def make_step(net, step_size=10000, end='fc1',
 
 caffe.set_mode_cpu()
 
-model_def = 'soundnet/deepsound_simplenet_train.prototxt'
-model_weights = 'soundnet/notquite.caffemodel'
+model_def = 'soundnet/deepsound_works_train.prototxt'
+model_weights = 'soundnet/definitely.caffemodel'
 
 net = caffe.Net(model_def,      # defines the structure of the model
                 model_weights,  # contains the trained weights
                 caffe.TEST)     # use test mode (e.g., don't perform dropout)
 
 
-[a_song_data, a_song_labels] = get_fft('../sounds/03orangecrush.wav', 0.5, 3, 1)
+[a_song_data, a_song_labels] = get_fft('../sounds/19lovebites.wav', 0.5, 19, 100)
 
 
 
@@ -73,13 +82,12 @@ net = caffe.Net(model_def,      # defines the structure of the model
 #                          120, 1470)  # image size is 227x227
 
 print("data and label shapes")
-sd = a_song_data
-sl = a_song_labels
+sd = a_song_data[10:11]
+sl = a_song_labels[10:11]
 
 input_data = np.array(sd, dtype=np.float32)
 input_labels = np.array(sl, dtype=np.float32)
-print input_data.shape
-print input_labels.shape
+
 
 net.set_input_arrays(input_data,input_labels )
 
@@ -90,14 +98,16 @@ print 'real class is: ' + str(net.blobs['label'].data)
 
 
 
-alldata = []
-
+alldata = [np.copy(net.blobs['data'].data[0])]
+#alldata += [np.copy(net.blobs['data'].data[0])]
+step = make_step(net, net.blobs['data'].data[0])
 i = 0
-for i in range(10):
+for i in range(50):
 	print "step " + str(i)
-	step = make_step(net, datanum=i)
-	net.blobs['data'].data[0] = step
-	alldata += [np.copy(step)]
+	step = np.copy(make_step(net, step))
+	#net.blobs['data'].data[0][:] = step[:]
+	
+	alldata += [step]
 
 
 

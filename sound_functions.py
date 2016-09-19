@@ -12,7 +12,6 @@ def get_fft(filename, seconds, label, max_out = 0):
     
     fftwidth = rate*2
     data = np.array(data[1], dtype=np.float32)
-    
     #data = 255.0*data.astype(np.float32)/(np.max(data)*2.0)
     #print(np.max(data))
     # Convert to mono
@@ -53,8 +52,8 @@ def get_fft(filename, seconds, label, max_out = 0):
         # Get fft and separate out magnitude and phase
         #data = np.fft.fft(data, fftwidth, axis=1) TMPDEBUG
         data = np.fft.fft(data)
-        print "data in.shape:"
-        print data.shape
+
+
         mag= np.absolute(data)
         #mag  = 255*mag/ (np.max(mag))
         phase = np.angle(data)
@@ -63,8 +62,7 @@ def get_fft(filename, seconds, label, max_out = 0):
 
 
         mp = np.concatenate((mag, phase))
-    
-        print(mp.shape)
+ 
         fftdata += [[[mp]]]
         labeldata.append(label)
         
@@ -78,13 +76,14 @@ def save_wav(filename, allthedata):
     print("allthedata:")
 
     allthedata = np.array(allthedata)
+    mydata = []
     print allthedata.shape
-    #outdata = np.ndarray((allthedata.shape[0], allthedata.shape[3]/2), dtype=np.int16)
-    outdata = []
+    outdata = np.ndarray((allthedata.shape[0], allthedata.shape[3]/2), dtype=np.int16)
+
     for i in range(allthedata.shape[0]):
         data = allthedata[i]
         data = data[0][0]
-        data = np.array(data)
+
         mag = data[:data.shape[0]/2]
         phase = data[data.shape[0]/2:]
         
@@ -95,43 +94,50 @@ def save_wav(filename, allthedata):
 
 
         #convert back to sound data
-        print "save_wav data.shape:"
-        print data.shape
+
         #data = np.fft.irfft(data, data.shape[1], axis=1) #TMPDEBUG
-        data = np.fft.irfft(data)
+        data = np.fft.ifft(data)
         
-        data = 0.75*data
+        #data = 0.75*data
 
         # # Put data back in the right format
         #data = np.reshape(data, (data.shape[0]*data.shape[1])) #TMPDEBUG
-        data = data/2.0
+        #data = data/2.0
         #data = 30000*data
-        data = np.int16(data)
-        print("data:")
-        pprint(data)
+        data = data.astype(np.int16)
+
         print data.shape
-        outdata += [data]
+        print i
+        print outdata.shape
+        #mydata = data
+        outdata [i][:] = np.copy(data[:])
         
     
     print("outdata:")
     pprint(outdata)
-    print "final data length: "
-    mydata = np.ndarray((1), dtype=np.int16)
-    for data in outdata:
-        mydata = np.append(mydata, data)
+    # print "final data length: "
+    # mydata = np.ndarray((1))
+    # for data in outdata:
+    #     mydata = np.append(mydata, data)
     
-    #mydata = np.reshape(outdata, (outdata.shape[0]*outdata.shape[1]))
+    # mydata = np.reshape(outdata, (outdata.shape[0]*outdata.shape[1]))
 
-    print mydata.shape
+    # print mydata.shape
 
-    #monodata = np.append(mydata, np.zeros(mydata.shape, dtype=np.int16))
-    #pprint(mydata)
-    
+    monodata = np.append(outdata, np.zeros(outdata.shape, dtype=np.int16))
+    #pprint("monodata:")
+    #pprint(monodata[0:20])
+ 
+
+    print "outdata 2:"
+    outdata = np.array(outdata, dtype=np.int16)
+    outdata = outdata.reshape((outdata.shape[0]*outdata.shape[1]))  
+    print outdata[0:20] 
     # Write to disk
     rate = 44100
     output_file = wave.open(filename, "w")
     output_file.setparams((1, 2, rate, 0, "NONE", "not compressed"))
-    output_file.writeframes(mydata)
+    output_file.writeframes(monodata)
     output_file.close()
 
 
