@@ -15,9 +15,12 @@ import caffe
 def objective_L2(dst):
 	dst.diff[:] = dst.data 
 
-def make_step(net, mydata, step_size=500, end='fc4',
+def make_step(net, mydata, step_size=2000, end='fc4',
 	jitter=32, clip=True, objective=objective_L2, datanum=0):
 	'''Basic gradient ascent step.'''
+
+
+	mydata[0,200:,:] = mydata[0,200:,:] + np.pi/4 #kinda like jitter shift...
 
 	src = net.blobs['data'] # input image is stored in Net's 'data' blob
 	dst = net.blobs[end]
@@ -64,7 +67,7 @@ net = caffe.Net(model_def,      # defines the structure of the model
                 caffe.TEST)     # use test mode (e.g., don't perform dropout)
 
 
-[a_song_data, a_song_labels] = get_fft('../sounds/10brandenburg2.wav', 0.5, 10, 100)
+[a_song_data, a_song_labels] = get_fft('../moresounds/13dune.wav', 0.5, 13, 100)
 
 
 
@@ -93,11 +96,11 @@ alldata = [np.copy(net.blobs['data'].data[0])]
 #alldata += [np.copy(net.blobs['data'].data[0])]
 step = make_step(net, net.blobs['data'].data[0])
 i = 0
-for i in range(1000):
+for i in range(50):
 	
 	step = np.copy(make_step(net, step))
 	#net.blobs['data'].data[0][:] = step[:]
-	if(i % 10 == 0):
+	if(i % 1== 0):
 		print "step " + str(i)
 		alldata += [step]
 

@@ -111,7 +111,7 @@ def preprocess_data():
     print "test, test labels shapes:"
     print test_data.shape
     print test_labels.shape
-
+    
     np.save('preprocessed_sound.npy', [input_data, input_labels, test_data, test_labels])
     return [input_data, input_labels, test_data, test_labels]
 
