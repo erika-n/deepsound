@@ -196,13 +196,13 @@ print 'train labels:', solver.net.blobs['label'].data[:]
 print 'test labels:', solver.test_nets[0].blobs['label'].data[:]
 
 imshow(solver.net.blobs['data'].data[0][0], cmap='gray'); axis('off')
-niter = 1000
-test_interval = 1
+niter = 10000
+test_interval = 10
 # losses will also be stored in the log
 train_loss = np.zeros(niter)
 test_acc = np.zeros(int(np.ceil(niter / test_interval)))
 output = np.zeros((niter, 10, 30))
-
+int_tests = 10
 # the main solver loop
 for it in range(niter):
     
@@ -218,20 +218,24 @@ for it in range(niter):
     # run a full test every so often
     # (Caffe can also do this for us and write to a log, but we show here
     #  how to do it directly in Python, where more complicated things are easier.)
+    
     if it == 0 or it % test_interval == 0:
+        correct = 0
         print 'Iteration', it, 'testing...'
-        for test_it in range(5):
+        for test_it in range(int_tests):
             solver.test_nets[0].forward()
             # for lenet:
             print "hypothesis: " + str(solver.test_nets[0].blobs['score'].data.argmax(1))
             print "actual: " + str(solver.test_nets[0].blobs['label'].data)
+
             print "loss: " + str(solver.test_nets[0].blobs['loss'].data)
+            correct += sum(solver.test_nets[0].blobs['label'].data[0][0] == solver.test_nets[0].blobs['score'].data.argmax(1))
             # for google net:
             # print "hypothesis: " + str(solver.test_nets[0].blobs['loss1/classifier'].data.argmax(1))
             # print "top1:" + str(solver.test_nets[0].blobs['loss1/top-1'].data)
             # print "actual: " + str(solver.test_nets[0].blobs['label'].data)
             # print "loss: " + str(solver.test_nets[0].blobs['loss1/loss1'].data) 
-
+        print str(correct) + "/" + str(int_tests)    
 
 
 
