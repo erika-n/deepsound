@@ -43,7 +43,7 @@ def preprocess_data():
     test_labels = []
     batch_size = 1
     numtests = 20
-    test_seconds = 0.5
+    test_seconds = 2
     input_data = []
     tmp_input_labels = []
     num_per_song = 30
@@ -111,7 +111,7 @@ def preprocess_data():
     print "test, test labels shapes:"
     print test_data.shape
     print test_labels.shape
-    
+     
     np.save('preprocessed_sound.npy', [input_data, input_labels, test_data, test_labels])
     return [input_data, input_labels, test_data, test_labels]
 

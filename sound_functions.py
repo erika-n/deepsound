@@ -7,7 +7,7 @@ import sys
 
 rate = 44100
 
-fftwidth = rate/10
+fftwidth = rate/30
 def get_fft(filename, seconds, label, max_out = 0):
 
     # Read in

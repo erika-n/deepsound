@@ -15,13 +15,23 @@ import caffe
 def objective_L2(dst):
 	dst.diff[:] = dst.data 
 
-def make_step(net, mydata, step_size=2000, end='fc4',
+def zoom(mydata):
+
+	newdata = np.ndarray((mydata.shape))
+	for i in range(mydata.shape[1]/2):
+		newdata[0,2*i, :] = mydata[0, i, :]
+		newdata[0,2*i + 1, :] = mydata[0, i, :]
+
+	return newdata
+
+def make_step(net, mydata, step_size=500, end='fc4',
 	jitter=32, clip=True, objective=objective_L2, datanum=0):
 	'''Basic gradient ascent step.'''
 
-
-	mydata[0,200:,:] = mydata[0,200:,:] + np.pi/4 #kinda like jitter shift...
-
+	#randomdata =  np.random.random_sample(mydata.shape)*3000 #kinda like jitter shift...
+	
+	#mydata[:] += randomdata
+	
 	src = net.blobs['data'] # input image is stored in Net's 'data' blob
 	dst = net.blobs[end]
 	src.data[0][:] = mydata 
@@ -49,9 +59,10 @@ def make_step(net, mydata, step_size=2000, end='fc4',
 	#pprint(fadeddata)
 	otherdata = np.add(mydata, ascent)
 	#otherdata = np.roll(np.roll(otherdata, -ox, -1), -oy, -2) # unshift image
+	#otherdata[:] -= randomdata
 	
-
 	return np.copy(otherdata)
+	
     #if clip:
     #    bias = net.transformer.mean['data']
     #    src.data[:] = np.clip(src.data, -bias, 255-bias)  
@@ -67,7 +78,7 @@ net = caffe.Net(model_def,      # defines the structure of the model
                 caffe.TEST)     # use test mode (e.g., don't perform dropout)
 
 
-[a_song_data, a_song_labels] = get_fft('../moresounds/13dune.wav', 0.5, 13, 100)
+[a_song_data, a_song_labels] = get_fft('../sounds/10brandenburg2.wav', 2, 10, 100)
 
 
 
@@ -76,8 +87,8 @@ net = caffe.Net(model_def,      # defines the structure of the model
 #                          120, 1470)  # image size is 227x227
 
 print("data and label shapes")
-sd = a_song_data[20:21]
-sl = a_song_labels[20:21]
+sd = a_song_data[50:51]
+sl = a_song_labels[50:51]
 
 input_data = np.array(sd, dtype=np.float32)
 input_labels = np.array(sl, dtype=np.float32)
@@ -96,13 +107,16 @@ alldata = [np.copy(net.blobs['data'].data[0])]
 #alldata += [np.copy(net.blobs['data'].data[0])]
 step = make_step(net, net.blobs['data'].data[0])
 i = 0
-for i in range(50):
+for i in range(100):
 	
-	step = np.copy(make_step(net, step))
+	step = make_step(net, step)
+	
 	#net.blobs['data'].data[0][:] = step[:]
-	if(i % 1== 0):
+	if(i % 10== 0):
+
 		print "step " + str(i)
 		alldata += [step]
+		#step = zoom(step)
 
 
 
