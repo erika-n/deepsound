@@ -24,7 +24,7 @@ def zoom(mydata):
 
 	return newdata
 
-def make_step(net, mydata, step_size=500, end='fc4',
+def make_step(net, mydata, step_size=500, end='score',
 	jitter=32, clip=True, objective=objective_L2, datanum=0):
 	'''Basic gradient ascent step.'''
 
@@ -34,21 +34,44 @@ def make_step(net, mydata, step_size=500, end='fc4',
 	
 	src = net.blobs['data'] # input image is stored in Net's 'data' blob
 	dst = net.blobs[end]
+	middle = 'fc4'
+	mid = net.blobs[middle]
 	src.data[0][:] = mydata 
 	#ox, oy = np.random.randint(-jitter, jitter+1, 2)
 	#src.data[0] = np.roll(np.roll(src.data[0], ox, -1), oy, -2) # apply jitter shift
 	
 	#rc.data[0][:] = a_song_data[5][:]
 	
-
+	#net.forward(end=middle)
 	net.forward(end=end)
+
+
+
+
 	objective(dst)  # specify the optimization objective 
+	dst.data[0][10:] = 1
+
 	net.backward(start=end) 
 
+
 	g = src.diff[0]
+	# print "g: "
+	# pprint(g)
 
 
-	# apply normalized ascent step to the input imag
+
+	# print "dst: "
+	# pprint(dst.data[0][:20])
+	# print "dst diff: "
+	# pprint(dst.diff[0][:20])
+	# print "middle: "
+	# pprint(mid.data[0][:20])
+	# print "middle diff: "
+	# pprint(mid.diff[0][:20])
+
+	# sys.exit()
+
+	# apply normalized ascent step to the input image
 	ascent = step_size/np.abs(g).mean() * g
 
 
@@ -70,15 +93,13 @@ def make_step(net, mydata, step_size=500, end='fc4',
 
 caffe.set_mode_cpu()
 
-model_def = 'soundnet/deepsound_simplenet2_train.prototxt'
+model_def = 'soundnet/deepsound_simplenet2_deploy.prototxt'
 model_weights = 'soundnet/simplenet2.caffemodel'
 
-net = caffe.Net(model_def,      # defines the structure of the model
-                model_weights,  # contains the trained weights
-                caffe.TEST)     # use test mode (e.g., don't perform dropout)
+net = caffe.Classifier(model_def, model_weights)     
 
 
-[a_song_data, a_song_labels] = get_fft('../sounds/10brandenburg2.wav', 2, 10, 100)
+[a_song_data, a_song_labels] = get_fft('../sounds/21truefaith.wav', 2, 18, 100)
 
 
 
@@ -86,30 +107,29 @@ net = caffe.Net(model_def,      # defines the structure of the model
 #                          1,         # 3-channel (BGR) images
 #                          120, 1470)  # image size is 227x227
 
-print("data and label shapes")
-sd = a_song_data[50:51]
-sl = a_song_labels[50:51]
+# print("data and label shapes")
+sd = a_song_data[0:1]
+sl = a_song_labels[0:1]
 
 input_data = np.array(sd, dtype=np.float32)
 input_labels = np.array(sl, dtype=np.float32)
 
 
-net.set_input_arrays(input_data,input_labels )
+#net.forward()
 
-net.forward()
-
-print 'predicted class is: ' + str(net.blobs['score'].data.argmax(1))
-print 'real class is: ' + str(net.blobs['label'].data)
+# print 'predicted class is: ' + str(net.blobs['score'].data.argmax(1))
+# print 'real class is: ' + str(input_labels[0])
 
 
 
-alldata = [np.copy(net.blobs['data'].data[0])]
+
+alldata = [np.copy(input_data[0])]
 #alldata += [np.copy(net.blobs['data'].data[0])]
-step = make_step(net, net.blobs['data'].data[0])
+step = make_step(net, np.copy(input_data[0]))
 i = 0
 for i in range(100):
 	
-	step = make_step(net, step)
+	
 	
 	#net.blobs['data'].data[0][:] = step[:]
 	if(i % 10== 0):
@@ -118,7 +138,7 @@ for i in range(100):
 		alldata += [step]
 		#step = zoom(step)
 
-
+	step = make_step(net, step)
 
 
 
