@@ -64,6 +64,7 @@ def get_fft(filename, seconds, label, max_out = 0, frames_per_second = 30):
 
 
         mag= np.absolute(data)
+        mag = mag
         
         phase = np.angle(data)
 

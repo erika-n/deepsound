@@ -25,7 +25,7 @@ def zoom(mydata):
 
 	return newdata
 
-def make_step(net, mydata, step_size=100000, end='fc2',
+def make_step(net, mydata, step_size=100000, end='fc1',
 	jitter=4, clip=True, objective=objective_L2):
 	'''Basic gradient ascent step.'''
 
@@ -100,8 +100,8 @@ def make_step(net, mydata, step_size=100000, end='fc2',
 
 caffe.set_mode_cpu()
 
-model_def = 'soundnet/deepsound_simplenet3_deploy.prototxt'
-model_weights = 'soundnet/simplenet3_7_1000.caffemodel'
+model_def = 'soundnet/deepsound_simplenet3_8_deploy.prototxt'
+model_weights = 'soundnet/simplenet3_8_5000.caffemodel'
 #model_weights = 'soundnet/simplenet3_5_500.caffemodel'
 #input_dim: 16
 #input_dim: 22050
@@ -109,7 +109,7 @@ model_weights = 'soundnet/simplenet3_7_1000.caffemodel'
 net = caffe.Net(model_def, model_weights, caffe.TRAIN)     
 
 
-[a_song_data, a_song_labels] = get_fft('../songsinmyhead/04coldhearted.wav', 4, 3, 10000, frames_per_second=5)
+[a_song_data, a_song_labels] = get_fft('../songsinmyhead/08dreams.wav', 4, 8, 10000, frames_per_second=5)
 
 
 

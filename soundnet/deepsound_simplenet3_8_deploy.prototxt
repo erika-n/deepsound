@@ -1,16 +1,15 @@
 
 
-layer {
-  name: "data"
-  type: "MemoryData"
-  top: "data"
-  top: "label"
-  memory_data_param {
-    batch_size: 1
-    channels: 1
-    height: 40
-    width: 8820
-  }
+force_backward: true
+
+
+
+input: "data"
+input_shape {
+  dim: 1
+  dim: 1
+  dim: 40
+  dim: 8820
 }
 
 layer {
@@ -19,7 +18,7 @@ layer {
   bottom: "data"
   top: "fc1"
   inner_product_param {
-    num_output: 100
+    num_output: 50
     weight_filler {
       type: "xavier"
     }
@@ -38,7 +37,7 @@ layer {
   bottom: "fc1"
   top: "fc2"
   inner_product_param {
-    num_output: 100
+    num_output: 50
     weight_filler {
       type: "xavier"
     }
@@ -59,7 +58,7 @@ layer {
   bottom: "fc2"
   top: "fc3"
   inner_product_param {
-    num_output: 100
+    num_output: 50
     weight_filler {
       type: "xavier"
     }
@@ -87,10 +86,3 @@ layer {
 
 
 
-layer {
-  name: "loss"
-  type: "SoftmaxWithLoss"
-  bottom: "score"
-  bottom: "label"
-  top: "loss"
-}

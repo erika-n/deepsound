@@ -115,11 +115,11 @@ def preprocess_data():
     
     np.save('preprocessed_sound.npy', [input_data, input_labels, test_data, test_labels])
    
-    sys.exit()
+
     return [input_data, input_labels, test_data, test_labels]
 
 
-process_data = False
+process_data = True
 if(process_data):
     [input_data, input_labels, test_data, test_labels] = preprocess_data()
 else:
@@ -200,12 +200,12 @@ print 'test labels:', solver.test_nets[0].blobs['label'].data[:]
 
 imshow(solver.net.blobs['data'].data[0][0], cmap='gray'); axis('off')
 niter = 10000
-test_interval = 10
+test_interval = 50
 # losses will also be stored in the log
 train_loss = np.zeros(niter)
 test_acc = np.zeros(int(np.ceil(niter / test_interval)))
 output = np.zeros((niter, 10, 30))
-int_tests = 10
+int_tests = 100
 # the main solver loop
 for it in range(niter):
     
@@ -224,6 +224,7 @@ for it in range(niter):
     
     if it == 0 or it % test_interval == 0:
         correct = 0
+        answers = []
         print 'Iteration', it, 'testing...'
         for test_it in range(int_tests):
             solver.test_nets[0].forward()
@@ -233,12 +234,15 @@ for it in range(niter):
 
             print "loss: " + str(solver.test_nets[0].blobs['loss'].data)
             correct += sum(solver.test_nets[0].blobs['label'].data[0][0] == solver.test_nets[0].blobs['score'].data.argmax(1))
+            answers.append(solver.test_nets[0].blobs['score'].data.argmax(1))
             # for google net:
             # print "hypothesis: " + str(solver.test_nets[0].blobs['loss1/classifier'].data.argmax(1))
             # print "top1:" + str(solver.test_nets[0].blobs['loss1/top-1'].data)
             # print "actual: " + str(solver.test_nets[0].blobs['label'].data)
             # print "loss: " + str(solver.test_nets[0].blobs['loss1/loss1'].data) 
         print str(correct) + "/" + str(int_tests)    
+        print "unique: " 
+        print np.unique(np.array(answers))
         solver.net.backward()
 
 
