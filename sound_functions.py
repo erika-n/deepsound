@@ -7,10 +7,12 @@ import sys
 
 rate = 44100
 
-fftwidth = rate/30
-def get_fft(filename, seconds, label, max_out = 0):
 
+def get_fft(filename, seconds, label, max_out = 0, frames_per_second = 30):
+
+    fftwidth = rate/frames_per_second
     # Read in
+
     data = wav.read(filename)
     
     
@@ -23,12 +25,12 @@ def get_fft(filename, seconds, label, max_out = 0):
     print data.shape
 
     
-    things = int(float(len(data))/(rate*seconds*2))
+    things = int(float(len(data))/(rate*seconds))
     
     if(max_out > 0):
         things = min(things, max_out)
     print "things: " + str(things)
-    m = seconds*rate*2
+    m = seconds*rate
     data = data[0:int(m*things)]
     
 
@@ -62,13 +64,17 @@ def get_fft(filename, seconds, label, max_out = 0):
 
 
         mag= np.absolute(data)
-        #mag  = 255*mag/ (np.max(mag))
+        
         phase = np.angle(data)
+
+        
+        #phase = phase/pi 
+
         #phase = phase + 2*np.pi
        
 
 
-        mp = np.concatenate((mag, phase))
+        mp = np.concatenate((mag, phase)) 
         
         if fftwidth > 1:
             fftdata += [[mp]]
@@ -82,10 +88,12 @@ def get_fft(filename, seconds, label, max_out = 0):
 
 
 
-def save_wav(filename, allthedata):
+def save_wav(filename, allthedata, fftwidth = 1470):
     print("allthedata:")
 
     allthedata = np.array(allthedata)
+    allthedata = np.array(allthedata)
+    #allthedata = np.average(allthedata) + allthedata #TMPDEBUG undo negatives added for ReLU
     mydata = []
     print allthedata.shape
     outdata = np.ndarray((allthedata.shape[0], allthedata.shape[3]*allthedata.shape[2]/2), dtype=np.int16)
@@ -100,7 +108,8 @@ def save_wav(filename, allthedata):
         mag = data[:data.shape[0]/2]
         phase = data[data.shape[0]/2:]
         
-
+        #mag = mag*10000.0
+        #phase = phase*np.pi
 
         #mag = mag*8000
         data = mag_phase_to_complex(mag, phase)

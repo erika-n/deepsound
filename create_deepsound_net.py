@@ -35,7 +35,7 @@ def shuffle_in_unison_inplace(a, b):
 
 def preprocess_data():
 
-    folder = '../sounds/'
+    folder = '../songsinmyhead/'
     files = [f for f in listdir(folder) if isfile(join(folder, f))]
     input_data = []
     input_labels = []
@@ -43,13 +43,13 @@ def preprocess_data():
     test_labels = []
     batch_size = 1
     numtests = 20
-    test_seconds = 2
+    test_seconds = 4
     input_data = []
     tmp_input_labels = []
     num_per_song = 30
     for i in range(len(files)):
         label = int(files[i][:2])
-        [nextfft, nextlabel] = get_fft(folder + '/' + files[i], test_seconds, label, num_per_song)
+        [nextfft, nextlabel] = get_fft(folder + '/' + files[i], test_seconds, label, num_per_song, frames_per_second=5)
         input_data += nextfft
         tmp_input_labels += [label for i in range(len(nextfft))]
         #test_data += [nextfft[0]]
@@ -59,6 +59,8 @@ def preprocess_data():
 
 
     input_data = np.array(input_data)
+
+
     input_labels = np.ndarray(len(tmp_input_labels))
     for i in range(len(tmp_input_labels)):
         input_labels[i]= tmp_input_labels[i]
@@ -83,8 +85,6 @@ def preprocess_data():
 
 
 
-
-    #right now I don't have enough data so making lots more to shuffle.
 
 
     
@@ -111,12 +111,15 @@ def preprocess_data():
     print "test, test labels shapes:"
     print test_data.shape
     print test_labels.shape
-     
+    
+    
     np.save('preprocessed_sound.npy', [input_data, input_labels, test_data, test_labels])
+   
+    sys.exit()
     return [input_data, input_labels, test_data, test_labels]
 
 
-process_data = True
+process_data = False
 if(process_data):
     [input_data, input_labels, test_data, test_labels] = preprocess_data()
 else:
@@ -236,6 +239,7 @@ for it in range(niter):
             # print "actual: " + str(solver.test_nets[0].blobs['label'].data)
             # print "loss: " + str(solver.test_nets[0].blobs['loss1/loss1'].data) 
         print str(correct) + "/" + str(int_tests)    
+        solver.net.backward()
 
 
 
