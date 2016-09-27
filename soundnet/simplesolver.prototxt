@@ -1,6 +1,6 @@
 # The train/test net protocol buffer definition
-train_net: "soundnet/deepsound_simplenet3_train.prototxt"
-test_net: "soundnet/deepsound_simplenet3_train.prototxt"
+train_net: "soundnet/auto_simple_train.prototxt"
+test_net: "soundnet/auto_simple_train.prototxt"
 # test_iter specifies how many forward passes the test should carry out.
 # In the case of MNIST, we have test batch size 100 and 100 test iterations,
 # covering the full 10,000 testing images.
@@ -11,7 +11,7 @@ iter_size: 1
 # The base learning rate, momentum and the weight decay of the network.
 base_lr: 0.0001
 momentum: 0.9
-weight_decay: 0.0001
+weight_decay: 0.01
 # The learning rate policy
 lr_policy: "inv"
 

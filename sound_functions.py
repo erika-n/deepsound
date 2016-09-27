@@ -8,6 +8,10 @@ import sys
 rate = 44100
 
 
+
+
+
+
 def get_fft(filename, seconds, label, max_out = 0, frames_per_second = 30):
 
     fftwidth = rate/frames_per_second
@@ -89,7 +93,7 @@ def get_fft(filename, seconds, label, max_out = 0, frames_per_second = 30):
 
 
 
-def save_wav(filename, allthedata, fftwidth = 1470):
+def save_wav(filename, allthedata):
     print("allthedata:")
 
     allthedata = np.array(allthedata)
@@ -97,11 +101,14 @@ def save_wav(filename, allthedata, fftwidth = 1470):
     #allthedata = np.average(allthedata) + allthedata #TMPDEBUG undo negatives added for ReLU
     mydata = []
     print allthedata.shape
+
+    is1d = (allthedata.shape[2] == 1)
+    
     outdata = np.ndarray((allthedata.shape[0], allthedata.shape[3]*allthedata.shape[2]/2), dtype=np.int16)
 
     for i in range(allthedata.shape[0]):
         data = allthedata[i]
-        if(fftwidth > 1):
+        if notis1d:
             data = data[0]
         else:
             data = data[0][0]
@@ -118,7 +125,7 @@ def save_wav(filename, allthedata, fftwidth = 1470):
 
         #convert back to sound data
 
-        if(fftwidth > 1):
+        if not is1d:
             data = np.fft.irfft(data, data.shape[1], axis=1) 
             data = np.reshape(data, (data.shape[0]*data.shape[1])) 
         else:
@@ -136,7 +143,7 @@ def save_wav(filename, allthedata, fftwidth = 1470):
         print i
         print outdata.shape
         #mydata = data
-        if(fftwidth > 1):
+        if not is1d:
             outdata [i][:] = np.copy(data[:])
         else:
             outdata [i][:] = np.copy(data[:])
@@ -173,6 +180,13 @@ def save_wav(filename, allthedata, fftwidth = 1470):
 
 def mag_phase_to_complex(mag, phase):
     return np.array([mag[p]*np.exp(1.j*phase[p]) for p in range(0,len(mag))])
+
+
+def time_to_shape(seconds, frames_per_second):
+    fftwidth = rate/frames_per_second
+    frames = 2*seconds*frames_per_second
+    return [int(frames), int(fftwidth)]
+
 
 
 def test_save_wav():
