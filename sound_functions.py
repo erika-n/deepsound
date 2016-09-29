@@ -71,11 +71,11 @@ def get_fft(filename, seconds, label, max_out = 0, frames_per_second = 30):
 
         mag= np.absolute(data)
         #mag = mag/f1
-        #mag = 255*(f2 + np.log(mag + f4)/f1)/f3
+        #mag = (f2 + np.log(mag + f4)/f1)/f3
 
         
         phase = np.angle(data)
-        #phase = 255*(phase + np.pi)/(2.0*np.pi)
+        #phase = (phase + np.pi)/(2.0*np.pi)
 
         
    

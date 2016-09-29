@@ -32,27 +32,34 @@ def zoom(mydata):
 
 	return newdata
 
-def make_step(net, mydata, step_size=10000, end='score',
-	jitter=4, clip=True, objective=objective_L2):
+def make_step(net, mydata, step_size=5000, end='score',
+	jitter=4, clip=True, objective=objective_L2, label=None):
 	'''Basic gradient ascent step.'''
 
 	
 	src = net.blobs['data'] # input image is stored in Net's 'data' blob
 	dst = net.blobs[end]
-	mid = net.blobs['fc1']
+	middle = 'fc1'
+	mid = net.blobs[middle]
 
 	
-	src.data[0][:] = mydata
+	src.data[0][:] = np.zeros(mydata.shape)
+
+	net.forward(end=middle)
+
+	middata = np.copy(mid.data[0])
 
 	net.forward(end=end)
 
-
+	
 
 	objective(dst)  # specify the optimization objective 
-	
-	
 
+	dst.diff[0][:] = np.random.random_sample(dst.diff[0].shape)
 
+	if label:
+		dst.diff[0][label] = 1000
+	
 	net.backward(start=end) 
 
 
@@ -62,14 +69,16 @@ def make_step(net, mydata, step_size=10000, end='score',
 	pprint(g)
 
 	# normalized ascent step 
-	ascent = step_size/np.abs(g).mean() * g
+	ascent = step_size/g.mean() * g
 
 	print "ascent: "
 	pprint(ascent)
 
 	
 
-	otherdata = ascent #np.add(mydata, ascent)
+	otherdata = ascent
+	print "otherdata: "
+	pprint (otherdata)
 	#otherdata = np.roll(np.roll(otherdata, -ox, -1), -oy, -2) # unshift image
 
 	return otherdata.copy()
@@ -111,10 +120,11 @@ def dream():
 
 	alldata = []
 	#alldata += [np.copy(net.blobs['data'].data[0])]
-	step = make_step(net, input_data[0])
+	step = make_step(net,np.array(a_song_data[20]))
 	
-	for i in range(10):
-		
+	l = 0
+	for i in range(100):
+		l = (l + 1) %30
 		
 		
 		#net.blobs['data'].data[0][:] = step[:]
@@ -124,7 +134,8 @@ def dream():
 			alldata += [step]
 			#step = zoom(step)
 
-		step = make_step(net, np.array(step))
+
+		step = make_step(net, step, label=l)
 
 
 

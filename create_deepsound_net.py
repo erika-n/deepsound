@@ -20,9 +20,9 @@ folder = '../songsinmyhead/'
 
 batch_size = 1
 numtests = 20
-test_seconds = 4
+test_seconds = 0.5
 test_fps = 30
-num_per_song = 30
+num_per_song = 100
 
 solver_file = 'soundnet/smallsolver.prototxt'
 
@@ -148,10 +148,10 @@ def soundnet(batch_size, shape, deploy=False):
     # n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
     # n.conv2 = L.Convolution(n.pool1, kernel_size=5, num_output=50, weight_filler=dict(type='xavier'))
     # n.pool2 = L.Pooling(n.conv2, kernel_size=2, stride=2, pool=P.Pooling.MAX)
-    n.fc1 =   L.InnerProduct(n.data, num_output=700, weight_filler=dict(type='xavier'))
-    n.s1 = L.Sigmoid(n.fc1, in_place=True)
-    # n.fc2 =   L.InnerProduct(n.s1, num_output=200, weight_filler=dict(type='xavier'))
-    # n.s2 = L.ReLU(n.fc2, in_place=True)
+    n.fc1 =   L.InnerProduct(n.data, num_output=100, weight_filler=dict(type='xavier'), bias_filler=dict(type='constant'))
+    n.s1 = L.TanH(n.fc1, in_place=True)
+    # n.fc2 =   L.InnerProduct(n.s1, num_output=100, weight_filler=dict(type='xavier'))
+    # n.s2 = L.Sigmoid(n.fc2, in_place=True)
 
     # n.fc3 =   L.InnerProduct(n.s2, num_output=100, weight_filler=dict(type='xavier'))
     # n.s3 = L.ReLU(n.fc3, in_place=True)
