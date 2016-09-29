@@ -8,9 +8,11 @@ import sys
 rate = 44100
 
 
-
-
-
+# factors to fudge mag by to make it fit into 0-1
+f1 = 255.0
+f2 = 3
+f3 = 5
+f4 = 1
 
 def get_fft(filename, seconds, label, max_out = 0, frames_per_second = 30):
 
@@ -68,15 +70,15 @@ def get_fft(filename, seconds, label, max_out = 0, frames_per_second = 30):
 
 
         mag= np.absolute(data)
-        mag = mag
+        #mag = mag/f1
+        #mag = 255*(f2 + np.log(mag + f4)/f1)/f3
+
         
         phase = np.angle(data)
+        #phase = 255*(phase + np.pi)/(2.0*np.pi)
 
         
-        #phase = phase/pi 
-
-        #phase = phase + 2*np.pi
-       
+   
 
 
         mp = np.concatenate((mag, phase)) 
@@ -108,18 +110,18 @@ def save_wav(filename, allthedata):
 
     for i in range(allthedata.shape[0]):
         data = allthedata[i]
-        if notis1d:
+        if not is1d:
             data = data[0]
         else:
             data = data[0][0]
 
         mag = data[:data.shape[0]/2]
-        phase = data[data.shape[0]/2:]
-        
-        #mag = mag*10000.0
-        #phase = phase*np.pi
+        #mag = mag*f1
+        #mag = np.exp(f1*(f3*mag - f2)) - f4
 
-        #mag = mag*8000
+        phase = data[data.shape[0]/2:]
+        #phase = phase*2*np.pi
+
         data = mag_phase_to_complex(mag, phase)
 
 
@@ -189,10 +191,17 @@ def time_to_shape(seconds, frames_per_second):
 
 
 
+
+
 def test_save_wav():
     filename = '../sounds/19lovebites.wav'
     [fftdata, fftlabels] = get_fft(filename, 1, 19)
+    print 'max, min, avg:'
+    print np.max(fftdata)
+    print np.min(fftdata)
+    print np.average(fftdata)
     save_wav('test3.wav', fftdata)
-    print("saved wav")
+    print("saved test3.wav")
 
-#test_save_wav()
+if __name__ == "__main__":
+    test_save_wav()

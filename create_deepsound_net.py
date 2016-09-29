@@ -20,11 +20,11 @@ folder = '../songsinmyhead/'
 
 batch_size = 1
 numtests = 20
-test_seconds = 6
-test_fps = 20
+test_seconds = 4
+test_fps = 30
 num_per_song = 30
 
-solver_file = 'soundnet/simplesolver.prototxt'
+solver_file = 'soundnet/smallsolver.prototxt'
 
 # * Import `caffe`, adding it to `sys.path` if needed. Make sure you've built pycaffe.
 
@@ -128,20 +128,34 @@ def soundnet(batch_size, shape, deploy=False):
         n.data = L.Input(shape=dict(dim=[1, 1, shape[0], shape[1]]))
     else:
         n.data, n.label = L.MemoryData(batch_size=batch_size, channels=1, height=shape[0], width=shape[1], ntop=2)
-    # n.pow = L.Power(n.data, scale=0.001)
-    # n.fc4 =   L.InnerProduct(n.data, num_output=100, weight_filler=dict(type='xavier'))
-    # n.s4 = L.Sigmoid(n.fc4, in_place=True)
-    # n.conv1 = L.Convolution(n.fc4, kernel_size=5, num_output=20, weight_filler=dict(type='xavier'))
+
+
+    #TODO: add force backward
+
+
+    # n.conv1 = L.Convolution(n.data, kernel_size=5, num_output=10, weight_filler=dict(type='xavier'))
+    # n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    # n.conv2 = L.Convolution(n.pool1, kernel_size=5, num_output=30, weight_filler=dict(type='xavier'))
+    # n.pool2 = L.Pooling(n.conv2, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    # n.fc1 =   L.InnerProduct(n.pool2, num_output=500, weight_filler=dict(type='xavier'))
+
+    # n.relu1 = L.ReLU(n.fc1, in_place=True)
+
+
+    
+
+    # n.conv1 = L.Convolution(n.data, kernel_size=5, num_output=20, weight_filler=dict(type='xavier'))
     # n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
     # n.conv2 = L.Convolution(n.pool1, kernel_size=5, num_output=50, weight_filler=dict(type='xavier'))
     # n.pool2 = L.Pooling(n.conv2, kernel_size=2, stride=2, pool=P.Pooling.MAX)
-    # n.fc1 =   L.InnerProduct(n.pool2, num_output=100, weight_filler=dict(type='xavier'))
-    # n.s1 = L.ReLU(n.fc1, in_place=True)
-    # # n.fc2 =   L.InnerProduct(n.fc1, num_output=100, weight_filler=dict(type='xavier'))
-    # # n.s2 = L.Sigmoid(n.fc2, in_place=True)
-    n.fc3 =   L.InnerProduct(n.data, num_output=600, weight_filler=dict(type='xavier'))
-    n.s3 = L.Sigmoid(n.fc3, in_place=True)
-    n.score = L.InnerProduct(n.s1, num_output=30, weight_filler=dict(type='xavier'))
+    n.fc1 =   L.InnerProduct(n.data, num_output=700, weight_filler=dict(type='xavier'))
+    n.s1 = L.Sigmoid(n.fc1, in_place=True)
+    # n.fc2 =   L.InnerProduct(n.s1, num_output=200, weight_filler=dict(type='xavier'))
+    # n.s2 = L.ReLU(n.fc2, in_place=True)
+
+    # n.fc3 =   L.InnerProduct(n.s2, num_output=100, weight_filler=dict(type='xavier'))
+    # n.s3 = L.ReLU(n.fc3, in_place=True)
+    n.score = L.InnerProduct(n.fc1, num_output=30, weight_filler=dict(type='xavier'))
     
     if not deploy:
         n.loss =  L.SoftmaxWithLoss(n.score, n.label)
@@ -158,7 +172,7 @@ def main():
     # gpu mode?
     #caffe.set_device(0)    
     #caffe.set_mode_gpu()
-    filename = 'soundnet/auto_simple'
+    filename = 'soundnet/auto_small'
     
 
     with open(filename + '_train.prototxt', 'w') as f:
@@ -204,11 +218,11 @@ def main():
     print 'test labels:', solver.test_nets[0].blobs['label'].data[:]
 
 
-    niter = 10000
-    test_interval = 50
+    niter = 5000
+    test_interval = 10
     # losses will also be stored in the log
 
-    int_tests = 100
+    int_tests = 10
     # the main solver loop
     for it in range(niter):
         
@@ -252,16 +266,15 @@ def main():
 
 if __name__ == "__main__":
 
-   try:
+    try:
       opts, args = getopt.getopt(sys.argv[1:],"hp",["preprocess"])
-   except getopt.GetoptError:
+    except getopt.GetoptError:
       print 'create_deepsound_net.py [--preprocess]'
       sys.exit(2)
-   for opt, arg in opts:
+    for opt, arg in opts:
       if opt == '-h':
          print 'create_deepsound_net.py [--preprocess]'
          sys.exit()
       elif opt == '-h' or opt in ( "--preprocess"):
          preprocess_data()
-
-main()        
+    main()        
