@@ -16,11 +16,11 @@ from pylab import *
 
 
 
-folder = '../sounds/'
+folder = '../songsinmyhead/'
 
 batch_size = 1
 numtests = 20
-test_seconds = 1
+test_seconds = 2
 test_fps = 60
 num_per_song = 100
 
@@ -129,8 +129,8 @@ def soundnet(batch_size, shape, deploy=False):
     else:
         n.data, n.label = L.MemoryData(batch_size=batch_size, channels=1, height=shape[0], width=shape[1], ntop=2)
 
-   
-    n.conv1 = L.Convolution(n.data, kernel_size=10, num_output=20, weight_filler=dict(type='xavier'))
+    n.pow = L.Power(n.data,scale=0.00001)
+    n.conv1 = L.Convolution(n.pow, kernel_size=10, num_output=20, weight_filler=dict(type='xavier'))
     n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
     n.conv2 = L.Convolution(n.pool1, kernel_size=5, num_output=30, weight_filler=dict(type='xavier'))
     n.pool2 = L.Pooling(n.conv2, kernel_size=2, stride=2, pool=P.Pooling.MAX)

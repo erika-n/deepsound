@@ -10,12 +10,12 @@ sys.path.insert(0, caffe_root + 'python')
 
 import caffe
 
-song = '../songsinmyhead/04coldhearted.wav'
+song = '../songsinmyhead/08dreams.wav'
 label = 8
-seconds = 1
+seconds = 2
 frames_per_second = 60
 model_def = 'soundnet/auto_small_deploy.prototxt'
-model_weights = 'soundnet/small_iter_5000.caffemodel'
+model_weights = 'soundnet/small_iter_1000.caffemodel'
 solver_file = 'soundnet/smallsolver.prototxt'
 restore_file = 'soundnet/small_iter_500.solverstate'
 
@@ -32,7 +32,7 @@ def zoom(mydata):
 
 	return newdata
 
-def make_step(net, mydata, step_size=0.5, end='fc1',
+def make_step(net, mydata, step_size=1000000, end='fc1',
 	jitter=4, clip=True, objective=objective_L2, label=None):
 	'''Basic gradient ascent step.'''
 
@@ -48,7 +48,8 @@ def make_step(net, mydata, step_size=0.5, end='fc1',
 
 
 	net.forward(end=end)
-
+	# print "dst.data:"
+	# pprint(dst.data)
 	
 
 	objective(dst)  # specify the optimization objective 
@@ -56,15 +57,15 @@ def make_step(net, mydata, step_size=0.5, end='fc1',
 	#dst.diff[0][:] = np.random.random_sample(dst.diff[0].shape)
 
 	# if label:
-	# 	dst.diff[0][label] = 1000
+	#dst.diff[0][5] = 1000
 
 	net.backward(start=end) 
 
 
 	g = src.diff[0]
 
-	print "g: "
-	pprint(g)
+	# print "g: "
+	# pprint(g)
 
 	# normalized ascent step 
 	ascent = step_size/np.abs(g).mean() * g
@@ -75,8 +76,8 @@ def make_step(net, mydata, step_size=0.5, end='fc1',
 	
 
 	otherdata = ascent 
-	print "otherdata: "
-	pprint (otherdata)
+	# print "otherdata: "
+	# pprint (otherdata)
 	#otherdata = np.roll(np.roll(otherdata, -ox, -1), -oy, -2) # unshift image
 
 	return otherdata.copy()
@@ -118,10 +119,10 @@ def dream():
 
 	alldata = []
 	#alldata += [np.copy(net.blobs['data'].data[0])]
-	step = make_step(net,np.array(np.zeros(input_data[0].shape)))
+	step = make_step(net,np.array(a_song_data[101]))
 	
 	l = 0
-	for i in range(10):
+	for i in range(100):
 		l = (l + 1) %30
 		
 		
@@ -140,55 +141,6 @@ def dream():
 	save_wav("will_it_dream.wav", np.array(alldata))
 
 
-
-
-def dreamandlearn():
-	# print "copying files..."
-	# copyfile( model_weights + ".orig", model_weights)
-	# copyfile(restore_file + ".orig", restore_file)
-
-
-	[input_data, input_labels, test_data, test_labels] = np.load('preprocessed_sound.npy')
-	solver = None  # ignore this workaround for lmdb data (can't instantiate two solvers on the same data)
-	solver = caffe.SGDSolver(solver_file)
-	solver.restore(restore_file)
-	net = solver.net
-	net.set_input_arrays(input_data, input_labels)
-	testnet = solver.test_nets[0]
-	testnet.set_input_arrays(test_data, test_labels)
-
-
-
-
-	[a_song_data, a_song_labels] = get_fft(song, seconds, label, 10000, frames_per_second=frames_per_second)
-
-
-
-	song_data = np.array(a_song_data[1:2], dtype=np.float32)
-
-	net.blobs['data'].data[0][:] = song_data
-	#net.blobs['label'].data[0] = input_labels
-	net.forward()
-
-	print 'predicted class is: ' + str(net.blobs['score'].data.argmax(1))
-	print 'real class is: ' + str(label)
-
-
-
-	alldata = []
-
-	step = make_step(net,np.zeros(song_data[0].shape))
-
-	for i in range(30):
-		print "step: " + str(i)
-		# step = make_step(net, np.zeros(song_data[0].shape))
-		for q in range(10):
-			step = make_step(net, step)
-		alldata += [step]
-		# for j in range(10):
-		# 	solver.step(1)
-
-	save_wav("will_it_dream.wav", np.array(alldata))
 
 if __name__ == "__main__":
 	dream()

@@ -71,11 +71,11 @@ def get_fft(filename, seconds, label, max_out = 0, frames_per_second = 30):
 
         mag= np.absolute(data)
         #mag = mag/f1
-        mag = (f2 + np.log(mag + f4)/f1)/f3
+        #mag = (f2 + np.log(mag + f4)/f1)/f3
 
         
         phase = np.angle(data)
-        phase = (phase + np.pi)/(2.0*np.pi)
+        phase = phase + np.pi
 
         
    
@@ -116,21 +116,21 @@ def save_wav(filename, allthedata):
             data = data[0][0]
 
         mag = data[:data.shape[0]/2]
-        print "mag before:"
-        pprint(mag)
+        #print "mag before:"
+        #pprint(mag)
         #mag = mag*f1
-        mag = np.abs(mag) #TMPDEBUG
-        mag = np.exp(mag) 
+        #mag = np.abs(mag) #TMPDEBUG
+        #mag = np.exp(mag) 
         #mag *= 2000
         
-        print "mag after:"
-        pprint(mag)
+        #print "mag after:"
+        #pprint(mag)
 
 
         phase = data[data.shape[0]/2:]
-        phase = phase*2*np.pi
-        print "phase: "
-        pprint(phase)
+        #phase = phase*2*np.pi
+        #print "phase: "
+        #pprint(phase)
 
         data = mag_phase_to_complex(mag, phase)
 
@@ -142,13 +142,13 @@ def save_wav(filename, allthedata):
         else:
             data = np.fft.ifft(data)
         
-        data = 3000*data
+        #data = 3000*data
         print "data: "
         pprint(data)
         # # Put data back in the right format
         
         #data = data/2.0
-        #data = 30000*data
+        data = 0.01*data
         data = data.astype(np.int16)
 
         print data.shape
