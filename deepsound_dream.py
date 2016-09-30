@@ -12,10 +12,10 @@ import caffe
 
 song = '../songsinmyhead/04coldhearted.wav'
 label = 8
-seconds = 4
-frames_per_second = 30
+seconds = 1
+frames_per_second = 60
 model_def = 'soundnet/auto_small_deploy.prototxt'
-model_weights = 'soundnet/small_iter_500.caffemodel'
+model_weights = 'soundnet/small_iter_5000.caffemodel'
 solver_file = 'soundnet/smallsolver.prototxt'
 restore_file = 'soundnet/small_iter_500.solverstate'
 
@@ -32,22 +32,20 @@ def zoom(mydata):
 
 	return newdata
 
-def make_step(net, mydata, step_size=5000, end='score',
+def make_step(net, mydata, step_size=0.5, end='fc1',
 	jitter=4, clip=True, objective=objective_L2, label=None):
 	'''Basic gradient ascent step.'''
 
 	
 	src = net.blobs['data'] # input image is stored in Net's 'data' blob
 	dst = net.blobs[end]
-	middle = 'fc1'
-	mid = net.blobs[middle]
+
 
 	
-	src.data[0][:] = np.zeros(mydata.shape)
+	src.data[0][:] = mydata
 
-	net.forward(end=middle)
 
-	middata = np.copy(mid.data[0])
+
 
 	net.forward(end=end)
 
@@ -55,11 +53,11 @@ def make_step(net, mydata, step_size=5000, end='score',
 
 	objective(dst)  # specify the optimization objective 
 
-	dst.diff[0][:] = np.random.random_sample(dst.diff[0].shape)
+	#dst.diff[0][:] = np.random.random_sample(dst.diff[0].shape)
 
-	if label:
-		dst.diff[0][label] = 1000
-	
+	# if label:
+	# 	dst.diff[0][label] = 1000
+
 	net.backward(start=end) 
 
 
@@ -69,14 +67,14 @@ def make_step(net, mydata, step_size=5000, end='score',
 	pprint(g)
 
 	# normalized ascent step 
-	ascent = step_size/g.mean() * g
+	ascent = step_size/np.abs(g).mean() * g
 
 	print "ascent: "
 	pprint(ascent)
 
 	
 
-	otherdata = ascent
+	otherdata = ascent 
 	print "otherdata: "
 	pprint (otherdata)
 	#otherdata = np.roll(np.roll(otherdata, -ox, -1), -oy, -2) # unshift image
@@ -120,10 +118,10 @@ def dream():
 
 	alldata = []
 	#alldata += [np.copy(net.blobs['data'].data[0])]
-	step = make_step(net,np.array(a_song_data[20]))
+	step = make_step(net,np.array(np.zeros(input_data[0].shape)))
 	
 	l = 0
-	for i in range(100):
+	for i in range(10):
 		l = (l + 1) %30
 		
 		
