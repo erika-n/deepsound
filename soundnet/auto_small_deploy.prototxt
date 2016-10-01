@@ -18,62 +18,35 @@ layer {
   bottom: "data"
   top: "pow"
   power_param {
-    scale: 1e-05
-  }
-}
-layer {
-  name: "conv1"
-  type: "Convolution"
-  bottom: "pow"
-  top: "conv1"
-  convolution_param {
-    num_output: 20
-    kernel_size: 10
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "pool1"
-  type: "Pooling"
-  bottom: "conv1"
-  top: "pool1"
-  pooling_param {
-    pool: MAX
-    kernel_size: 2
-    stride: 2
-  }
-}
-layer {
-  name: "conv2"
-  type: "Convolution"
-  bottom: "pool1"
-  top: "conv2"
-  convolution_param {
-    num_output: 30
-    kernel_size: 5
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "pool2"
-  type: "Pooling"
-  bottom: "conv2"
-  top: "pool2"
-  pooling_param {
-    pool: MAX
-    kernel_size: 2
-    stride: 2
+    scale: 1e-06
   }
 }
 layer {
   name: "fc1"
   type: "InnerProduct"
-  bottom: "pool2"
+  bottom: "pow"
   top: "fc1"
+  inner_product_param {
+    num_output: 900
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "s1"
+  type: "ReLU"
+  bottom: "fc1"
+  top: "fc1"
+}
+layer {
+  name: "fc2"
+  type: "InnerProduct"
+  bottom: "fc1"
+  top: "fc2"
   inner_product_param {
     num_output: 500
     weight_filler {
@@ -82,15 +55,33 @@ layer {
   }
 }
 layer {
-  name: "relu1"
+  name: "s2"
   type: "ReLU"
-  bottom: "fc1"
-  top: "fc1"
+  bottom: "fc2"
+  top: "fc2"
+}
+layer {
+  name: "fc3"
+  type: "InnerProduct"
+  bottom: "fc2"
+  top: "fc3"
+  inner_product_param {
+    num_output: 500
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "s3"
+  type: "ReLU"
+  bottom: "fc3"
+  top: "fc3"
 }
 layer {
   name: "score"
   type: "InnerProduct"
-  bottom: "fc1"
+  bottom: "fc3"
   top: "score"
   inner_product_param {
     num_output: 30

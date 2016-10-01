@@ -10,12 +10,12 @@ sys.path.insert(0, caffe_root + 'python')
 
 import caffe
 
-song = '../songsinmyhead/08dreams.wav'
+song = '../sounds/10brandenburg2.wav'
 label = 8
 seconds = 2
 frames_per_second = 60
-model_def = 'soundnet/auto_small_deploy.prototxt'
-model_weights = 'soundnet/small_iter_1000.caffemodel'
+model_def = 'soundnet/conv2_deploy.prototxt'
+model_weights = 'soundnet/conv2_1500.caffemodel'
 solver_file = 'soundnet/smallsolver.prototxt'
 restore_file = 'soundnet/small_iter_500.solverstate'
 
@@ -119,10 +119,10 @@ def dream():
 
 	alldata = []
 	#alldata += [np.copy(net.blobs['data'].data[0])]
-	step = make_step(net,np.array(a_song_data[101]))
+	step = make_step(net,np.zeros(np.array(a_song_data[0]).shape))
 	
 	l = 0
-	for i in range(100):
+	for i in range(10):
 		l = (l + 1) %30
 		
 		
