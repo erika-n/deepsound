@@ -32,7 +32,7 @@ def zoom(mydata):
 
 	return newdata
 
-def make_step(net, mydata, step_size=1000000, end='fc1',
+def make_step(net, mydata, step_size=1000000, end='pool2',
 	jitter=4, clip=True, objective=objective_L2, label=None):
 	'''Basic gradient ascent step.'''
 
@@ -56,8 +56,8 @@ def make_step(net, mydata, step_size=1000000, end='fc1',
 
 	#dst.diff[0][:] = np.random.random_sample(dst.diff[0].shape)
 
-	# if label:
-	#dst.diff[0][5] = 1000
+	if label:
+		dst.diff[0][label] = 100
 
 	net.backward(start=end) 
 
@@ -78,7 +78,6 @@ def make_step(net, mydata, step_size=1000000, end='fc1',
 	otherdata = ascent 
 	# print "otherdata: "
 	# pprint (otherdata)
-	#otherdata = np.roll(np.roll(otherdata, -ox, -1), -oy, -2) # unshift image
 
 	return otherdata.copy()
 	
@@ -119,12 +118,10 @@ def dream():
 
 	alldata = []
 	#alldata += [np.copy(net.blobs['data'].data[0])]
-	step = make_step(net,np.zeros(np.array(a_song_data[0]).shape))
-	
-	l = 0
+	step = make_step(net,np.array(a_song_data[5]))
+
 	for i in range(10):
-		l = (l + 1) %30
-		
+
 		
 		#net.blobs['data'].data[0][:] = step[:]
 		if(i % 1== 0):
@@ -134,7 +131,7 @@ def dream():
 			#step = zoom(step)
 
 
-		step = make_step(net, step, label=l)
+		step = make_step(net, step)
 
 
 
