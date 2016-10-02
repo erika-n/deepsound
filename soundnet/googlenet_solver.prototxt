@@ -1,4 +1,4 @@
-net: "deepsound_googlenet_learn.prototxt"
+net: "soundnet/deepsound_googlenet_learn.prototxt"
 
 # test_iter specifies how many forward passes the test should carry out.
 # In the case of MNIST, we have test batch size 100 and 100 test iterations,

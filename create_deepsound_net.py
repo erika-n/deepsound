@@ -129,7 +129,7 @@ def soundnet(batch_size, shape, deploy=False):
     else:
         n.data, n.label = L.MemoryData(batch_size=batch_size, channels=1, height=shape[0], width=shape[1], ntop=2)
 
-    n.pow = L.Power(n.data,scale=0.000001)
+    n.pow = L.Power(n.data,scale=0.00001)
     # n.conv1 = L.Convolution(n.pow, kernel_size=10, num_output=20, weight_filler=dict(type='xavier'))
     # n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
     # n.conv2 = L.Convolution(n.pool1, kernel_size=5, num_output=30, weight_filler=dict(type='xavier'))
@@ -145,14 +145,14 @@ def soundnet(batch_size, shape, deploy=False):
     # # n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
     # # n.conv2 = L.Convolution(n.pool1, kernel_size=5, num_output=50, weight_filler=dict(type='xavier'))
     # # n.pool2 = L.Pooling(n.conv2, kernel_size=2, stride=2, pool=P.Pooling.MAX)
-    n.fc1 =   L.InnerProduct(n.pow, num_output=900, weight_filler=dict(type='xavier'), bias_filler=dict(type='constant'))
+    n.fc1 =  L.InnerProduct(n.pow, num_output=800, weight_filler=dict(type='xavier'))
     n.s1 = L.ReLU(n.fc1, in_place=True)
-    n.fc2 =   L.InnerProduct(n.fc1, num_output=500, weight_filler=dict(type='xavier'))
+    n.fc2 =   L.InnerProduct(n.fc1, num_output=400, weight_filler=dict(type='xavier'))
     n.s2 = L.ReLU(n.fc2, in_place=True)
-    n.fc3 =   L.InnerProduct(n.fc2, num_output=500, weight_filler=dict(type='xavier'))
-    n.s3 = L.ReLU(n.fc3, in_place=True)
+    # n.fc3 =   L.InnerProduct(n.fc2, num_output=100, weight_filler=dict(type='xavier'))
+    # n.s3 = L.Sigmoid(n.fc3, in_place=True)
 
-    n.score = L.InnerProduct(n.fc3, num_output=30, weight_filler=dict(type='xavier'))
+    n.score = L.InnerProduct(n.fc2, num_output=30, weight_filler=dict(type='xavier'))
     
     if not deploy:
         n.loss =  L.SoftmaxWithLoss(n.score, n.label)
@@ -216,10 +216,10 @@ def main():
 
 
     niter = 5000
-    test_interval = 10
+    test_interval = 20
     # losses will also be stored in the log
 
-    int_tests = 10
+    int_tests = 20
     # the main solver loop
     for it in range(niter):
         
@@ -246,6 +246,8 @@ def main():
                 # print "top1:" + str(solver.test_nets[0].blobs['loss1/top-1'].data)
                 # print "actual: " + str(solver.test_nets[0].blobs['label'].data)
                 # print "loss: " + str(solver.test_nets[0].blobs['loss1/loss1'].data) 
+                # correct += sum(solver.test_nets[0].blobs['label'].data[0][0] == solver.test_nets[0].blobs['loss1/top-1'].data)
+                # answers.append(solver.test_nets[0].blobs['loss1/top-1'].data)
             print str(correct) + "/" + str(int_tests)    
             print "unique: " 
             print np.unique(np.array(answers))

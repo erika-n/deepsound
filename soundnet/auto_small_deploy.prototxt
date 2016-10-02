@@ -18,7 +18,7 @@ layer {
   bottom: "data"
   top: "pow"
   power_param {
-    scale: 1e-06
+    scale: 1e-05
   }
 }
 layer {
@@ -27,12 +27,9 @@ layer {
   bottom: "pow"
   top: "fc1"
   inner_product_param {
-    num_output: 900
+    num_output: 800
     weight_filler {
       type: "xavier"
-    }
-    bias_filler {
-      type: "constant"
     }
   }
 }
@@ -48,7 +45,7 @@ layer {
   bottom: "fc1"
   top: "fc2"
   inner_product_param {
-    num_output: 500
+    num_output: 400
     weight_filler {
       type: "xavier"
     }
@@ -61,27 +58,9 @@ layer {
   top: "fc2"
 }
 layer {
-  name: "fc3"
-  type: "InnerProduct"
-  bottom: "fc2"
-  top: "fc3"
-  inner_product_param {
-    num_output: 500
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "s3"
-  type: "ReLU"
-  bottom: "fc3"
-  top: "fc3"
-}
-layer {
   name: "score"
   type: "InnerProduct"
-  bottom: "fc3"
+  bottom: "fc2"
   top: "score"
   inner_product_param {
     num_output: 30

@@ -10,14 +10,14 @@ sys.path.insert(0, caffe_root + 'python')
 
 import caffe
 
-song = '../sounds/10brandenburg2.wav'
+song = '../songsinmyhead/04coldhearted.wav'
 label = 8
 seconds = 2
 frames_per_second = 60
-model_def = 'soundnet/conv2_deploy.prototxt'
-model_weights = 'soundnet/conv2_1500.caffemodel'
+model_def = 'soundnet/auto_small_deploy.prototxt'
+model_weights = 'soundnet/small_iter_3000.caffemodel'
 solver_file = 'soundnet/smallsolver.prototxt'
-restore_file = 'soundnet/small_iter_500.solverstate'
+restore_file = 'soundnet/small_iter_2500.solverstate'
 
 def objective_L2(dst):
 	dst.diff[:] = dst.data 
@@ -32,7 +32,7 @@ def zoom(mydata):
 
 	return newdata
 
-def make_step(net, mydata, step_size=1000000, end='pool2',
+def make_step(net, mydata, step_size=100000, end='fc1',
 	jitter=4, clip=True, objective=objective_L2, label=None):
 	'''Basic gradient ascent step.'''
 
@@ -54,7 +54,6 @@ def make_step(net, mydata, step_size=1000000, end='pool2',
 
 	objective(dst)  # specify the optimization objective 
 
-	#dst.diff[0][:] = np.random.random_sample(dst.diff[0].shape)
 
 	if label:
 		dst.diff[0][label] = 100
@@ -97,8 +96,8 @@ def dream():
 
 
 
-	sd = a_song_data[1:2]
-	sl = a_song_labels[1:2]
+	sd = a_song_data[5:6]
+	sl = a_song_labels[5:6]
 
 	input_data = np.array(sd, dtype=np.float32)
 	input_labels = np.array(sl, dtype=np.float32)
@@ -116,20 +115,16 @@ def dream():
 
 
 
-	alldata = []
-	#alldata += [np.copy(net.blobs['data'].data[0])]
-	step = make_step(net,np.array(a_song_data[5]))
+	alldata = [input_data[0]]
+
+	step = make_step(net,input_data[0])
 
 	for i in range(10):
 
-		
-		#net.blobs['data'].data[0][:] = step[:]
 		if(i % 1== 0):
 
 			print "step " + str(i)
 			alldata += [step]
-			#step = zoom(step)
-
 
 		step = make_step(net, step)
 

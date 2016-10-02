@@ -7,15 +7,25 @@ layer {
   memory_data_param {
     batch_size: 1
     channels: 1
-    height: 400
-    width: 441
+    height: 240
+    width: 735
+  }
+}
+
+layer {
+  name: "pow"
+  type: "Power"
+  bottom: "data"
+  top: "pow"
+  power_param {
+    scale: 1e-06
   }
 }
 
 layer {
   name: "conv1/7x7_s2"
   type: "Convolution"
-  bottom: "data"
+  bottom: "pow"
   top: "conv1/7x7_s2"
   param {
     lr_mult: 1
