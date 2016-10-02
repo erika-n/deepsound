@@ -12,21 +12,12 @@ layer {
   }
 }
 layer {
-  name: "pow"
-  type: "Power"
-  bottom: "data"
-  top: "pow"
-  power_param {
-    scale: 1e-05
-  }
-}
-layer {
   name: "fc1"
   type: "InnerProduct"
-  bottom: "pow"
+  bottom: "data"
   top: "fc1"
   inner_product_param {
-    num_output: 800
+    num_output: 700
     weight_filler {
       type: "xavier"
     }
@@ -34,32 +25,14 @@ layer {
 }
 layer {
   name: "s1"
-  type: "ReLU"
+  type: "Sigmoid"
   bottom: "fc1"
   top: "fc1"
 }
 layer {
-  name: "fc2"
-  type: "InnerProduct"
-  bottom: "fc1"
-  top: "fc2"
-  inner_product_param {
-    num_output: 400
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "s2"
-  type: "ReLU"
-  bottom: "fc2"
-  top: "fc2"
-}
-layer {
   name: "score"
   type: "InnerProduct"
-  bottom: "fc2"
+  bottom: "fc1"
   top: "score"
   inner_product_param {
     num_output: 30

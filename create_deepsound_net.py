@@ -129,7 +129,8 @@ def soundnet(batch_size, shape, deploy=False):
     else:
         n.data, n.label = L.MemoryData(batch_size=batch_size, channels=1, height=shape[0], width=shape[1], ntop=2)
 
-    n.pow = L.Power(n.data,scale=0.00001)
+    
+    #n.pow = L.Power(n.data,scale=0.00001)
     # n.conv1 = L.Convolution(n.pow, kernel_size=10, num_output=20, weight_filler=dict(type='xavier'))
     # n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
     # n.conv2 = L.Convolution(n.pool1, kernel_size=5, num_output=30, weight_filler=dict(type='xavier'))
@@ -145,14 +146,14 @@ def soundnet(batch_size, shape, deploy=False):
     # # n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
     # # n.conv2 = L.Convolution(n.pool1, kernel_size=5, num_output=50, weight_filler=dict(type='xavier'))
     # # n.pool2 = L.Pooling(n.conv2, kernel_size=2, stride=2, pool=P.Pooling.MAX)
-    n.fc1 =  L.InnerProduct(n.pow, num_output=800, weight_filler=dict(type='xavier'))
-    n.s1 = L.ReLU(n.fc1, in_place=True)
-    n.fc2 =   L.InnerProduct(n.fc1, num_output=400, weight_filler=dict(type='xavier'))
-    n.s2 = L.ReLU(n.fc2, in_place=True)
+    n.fc1 =  L.InnerProduct(n.data, num_output=700, weight_filler=dict(type='xavier'))
+    n.s1 = L.Sigmoid(n.fc1, in_place=True)
+    # n.fc2 =   L.InnerProduct(n.fc1, num_output=400, weight_filler=dict(type='xavier'))
+    # n.s2 = L.ReLU(n.fc2, in_place=True)
     # n.fc3 =   L.InnerProduct(n.fc2, num_output=100, weight_filler=dict(type='xavier'))
     # n.s3 = L.Sigmoid(n.fc3, in_place=True)
 
-    n.score = L.InnerProduct(n.fc2, num_output=30, weight_filler=dict(type='xavier'))
+    n.score = L.InnerProduct(n.fc1, num_output=30, weight_filler=dict(type='xavier'))
     
     if not deploy:
         n.loss =  L.SoftmaxWithLoss(n.score, n.label)

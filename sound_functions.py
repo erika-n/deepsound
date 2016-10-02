@@ -13,6 +13,7 @@ f1 = 255.0
 f2 = 3
 f3 = 5
 f4 = 1
+f5 = 1
 
 def get_fft(filename, seconds, label, max_out = 0, frames_per_second = 30):
 
@@ -84,6 +85,7 @@ def get_fft(filename, seconds, label, max_out = 0, frames_per_second = 30):
        
  
         mp = np.concatenate((mag, phase)) 
+        mp *= f5
         
         if fftwidth > 1:
             fftdata += [[mp]]
@@ -118,7 +120,7 @@ def save_wav(filename, allthedata):
             data = data[0][0]
 
 
-
+        data /= f5
 	    
         #datawidth = data.shape[1]
         #data = data.reshape((data.size,))
