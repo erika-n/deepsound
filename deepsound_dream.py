@@ -10,12 +10,12 @@ sys.path.insert(0, caffe_root + 'python')
 
 import caffe
 
-song = '../songsinmyhead/08dreams.wav'
+song = '../moresounds/13dune.wav'
 label = 8
 seconds = 2
 frames_per_second = 60
-model_def = 'soundnet/auto_small_deploy.prototxt'
-model_weights = 'soundnet/small_iter_1000.caffemodel'
+model_def = 'soundnet/conv3_deploy.prototxt'
+model_weights = 'soundnet/conv3_1500.caffemodel'
 solver_file = 'soundnet/smallsolver.prototxt'
 restore_file = 'soundnet/small_iter_2500.solverstate'
 
@@ -32,7 +32,7 @@ def zoom(mydata):
 
 	return newdata
 
-def make_step(net, mydata, step_size=100000, end='fc1',
+def make_step(net, mydata, step_size=100000, end='pool2',
 	jitter=4, clip=True, objective=objective_L2, label=None):
 	'''Basic gradient ascent step.'''
 
@@ -113,15 +113,15 @@ def dream():
 
 
 	alldata = [input_data[0]]
-	divisor = 1.0#100000.0
+	divisor = 0.001# 1.0 #100000.0
 	step = make_step(net,input_data[0]/divisor)
 
 	for i in range(10):
 
 		if(i % 1== 0):
-			step = make_step(net, input_data[i + 1]*10.0/divisor)
+			step = make_step(net, step/divisor)
 			print "step " + str(i)
-			alldata += [step*divisor]
+			alldata += [step]
 
 		
 

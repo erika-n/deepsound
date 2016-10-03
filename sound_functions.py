@@ -122,15 +122,17 @@ def save_wav(filename, allthedata):
 
         data /= f5
 	    
-        #datawidth = data.shape[1]
-        #data = data.reshape((data.size,))
 
-        #mag = np.empty((data.size/2), dtype=np.float32)
-        #phase = np.empty((data.size/2), dtype = np.float32)
-        ##data /= 0.00001
-        #mag[:] = data[0::2]
-        #phase[:] = data[1::2]
+        #experimental: combine mag and phase.
+        # datawidth = data.shape[1]
+        # data = data.reshape((data.size,))
 
+        # mag = np.empty((data.size/2), dtype=np.float32)
+        # phase = np.empty((data.size/2), dtype = np.float32)
+        # #data /= 0.00001
+        # mag[:] = data[0::2]
+        # phase[:] = data[1::2]
+        
         
         #phase = phase*2*np.pi
         #print "phase: "
@@ -138,7 +140,7 @@ def save_wav(filename, allthedata):
         mag = data[:data.shape[0]/2]
         phase = data[data.shape[0]/2:]
         data = mag_phase_to_complex(mag, phase)
-        #data = data.reshape((data.size/datawidth, datawidth))
+        # data = data.reshape((data.size/datawidth, datawidth)) #EXPERIMENTAL
         #convert back to sound data
 
         if not is1d:
