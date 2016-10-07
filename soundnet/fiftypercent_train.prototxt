@@ -1,15 +1,14 @@
 force_backward : true
 layer {
   name: "data"
-  type: "Input"
+  type: "MemoryData"
   top: "data"
-  input_param {
-    shape {
-      dim: 1
-      dim: 1
-      dim: 100
-      dim: 441
-    }
+  top: "label"
+  memory_data_param {
+    batch_size: 1
+    channels: 1
+    height: 100
+    width: 441
   }
 }
 layer {
@@ -32,9 +31,20 @@ layer {
   top: "conv1"
 }
 layer {
+  name: "pool1"
+  type: "Pooling"
+  bottom: "conv1"
+  top: "pool1"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
   name: "conv2"
   type: "Convolution"
-  bottom: "conv1"
+  bottom: "pool1"
   top: "conv2"
   convolution_param {
     num_output: 30
@@ -51,9 +61,20 @@ layer {
   top: "conv2"
 }
 layer {
+  name: "pool2"
+  type: "Pooling"
+  bottom: "conv2"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
   name: "conv3"
   type: "Convolution"
-  bottom: "conv2"
+  bottom: "pool2"
   top: "conv3"
   convolution_param {
     num_output: 30
@@ -70,9 +91,20 @@ layer {
   top: "conv3"
 }
 layer {
+  name: "pool3"
+  type: "Pooling"
+  bottom: "conv3"
+  top: "pool3"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
   name: "conv4"
   type: "Convolution"
-  bottom: "conv3"
+  bottom: "pool3"
   top: "conv4"
   convolution_param {
     num_output: 30
@@ -83,12 +115,23 @@ layer {
   }
 }
 layer {
+  name: "pool4"
+  type: "Pooling"
+  bottom: "conv4"
+  top: "pool4"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
   name: "fc1"
   type: "InnerProduct"
-  bottom: "conv4"
+  bottom: "pool4"
   top: "fc1"
   inner_product_param {
-    num_output: 100
+    num_output: 500
     weight_filler {
       type: "xavier"
     }
@@ -105,4 +148,11 @@ layer {
       type: "xavier"
     }
   }
+}
+layer {
+  name: "loss"
+  type: "SoftmaxWithLoss"
+  bottom: "score"
+  bottom: "label"
+  top: "loss"
 }

@@ -20,8 +20,8 @@ folder = '../songsinmyhead/'
 
 batch_size = 1
 numtests = 20
-test_seconds = 0.5
-test_fps = 10
+test_seconds = 1
+test_fps = 100
 num_per_song = 100
 
 solver_file = 'soundnet/smallsolver.prototxt'
@@ -39,7 +39,7 @@ os.environ["GLOG_minloglevel"] = "4"
 
 from caffe import layers as L, params as P
 
-from sound_functions import get_fft, time_to_shape
+from sound_functions import get_fft, get_raw, time_to_shape
 
 
 def shuffle_in_unison_inplace(a, b):
@@ -64,7 +64,7 @@ def preprocess_data():
     files = [f for f in listdir(folder) if isfile(join(folder, f))]
     for i in range(len(files)):
         label = int(files[i][:2])
-        [nextfft, nextlabel] = get_fft(folder + '/' + files[i], test_seconds, label, num_per_song, frames_per_second=test_fps)
+        [nextfft, nextlabel] = get_raw(folder + '/' + files[i], test_seconds, label, num_per_song, frames_per_second=test_fps)
         input_data += nextfft
         tmp_input_labels += [label for i in range(len(nextfft))]
 
@@ -131,11 +131,23 @@ def soundnet(batch_size, shape, deploy=False):
 
     
     #n.pow = L.Power(n.data,scale=0.00001)
-    # n.conv1 = L.Convolution(n.pow, kernel_size=10, num_output=20, weight_filler=dict(type='xavier'))
-    # n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
-    # n.conv2 = L.Convolution(n.pool1, kernel_size=5, num_output=30, weight_filler=dict(type='xavier'))
-    # n.pool2 = L.Pooling(n.conv2, kernel_size=2, stride=2, pool=P.Pooling.MAX)
-    # n.fc1 =   L.InnerProduct(n.pool2, num_output=500, weight_filler=dict(type='xavier'))
+    n.conv1 = L.Convolution(n.data, kernel_size=7, num_output=30, weight_filler=dict(type='xavier'))
+    n.relu1 = L.ReLU(n.conv1, in_place=True)
+    #n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+
+    n.conv2 = L.Convolution(n.conv1, kernel_size=5, num_output=30, weight_filler=dict(type='xavier'))
+    n.relu2 = L.ReLU(n.conv2, in_place=True)
+    #n.pool2 = L.Pooling(n.conv2, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    
+    n.conv3 = L.Convolution(n.conv2, kernel_size=3, num_output=30, weight_filler=dict(type='xavier'))
+    n.relu3= L.ReLU(n.conv3, in_place=True)
+    #n.pool3 = L.Pooling(n.conv3, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    n.conv4 = L.Convolution(n.conv3, kernel_size=2, num_output=30, weight_filler=dict(type='xavier'))
+    #n.pool4 = L.Pooling(n.conv4, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    # n.conv5 = L.Convolution(n.pool4, kernel_size=3, num_output=30, weight_filler=dict(type='xavier'))
+    # n.pool5 = L.Pooling(n.conv5, kernel_size=3, stride=2, pool=P.Pooling.MAX)        
+    n.fc1 =   L.InnerProduct(n.conv4, num_output=100, weight_filler=dict(type='xavier'))
+
 
     # n.relu1 = L.ReLU(n.fc1, in_place=True)
 
@@ -146,18 +158,25 @@ def soundnet(batch_size, shape, deploy=False):
     # # n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
     # # n.conv2 = L.Convolution(n.pool1, kernel_size=5, num_output=50, weight_filler=dict(type='xavier'))
     # # n.pool2 = L.Pooling(n.conv2, kernel_size=2, stride=2, pool=P.Pooling.MAX)
-    n.fc1 =  L.InnerProduct(n.data, num_output=1000, weight_filler=dict(type='xavier'))
-    n.s1 = L.Sigmoid(n.fc1, in_place=True)
-    n.fc2 =   L.InnerProduct(n.fc1, num_output=400, weight_filler=dict(type='xavier'))
-    n.s2 = L.Sigmoid(n.fc2, in_place=True)
-    # n.fc3 =   L.InnerProduct(n.fc2, num_output=400, weight_filler=dict(type='xavier'))
-    # n.s3 = L.Sigmoid(n.fc3, in_place=True)
+    # n.fc1 =  L.InnerProduct(n.data, num_output=1500, weight_filler=dict(type='xavier'))
+    # n.s1 = L.ReLU(n.fc1, in_place=True)
+    # n.fc2 =   L.InnerProduct(n.fc1, num_output=1000, weight_filler=dict(type='xavier'))
+    # n.s2 = L.ReLU(n.fc2, in_place=True)
+    # n.fc3 =   L.InnerProduct(n.fc2, num_output=600, weight_filler=dict(type='xavier'))
+    # n.s3 = L.ReLU(n.fc3, in_place=True)
+    
+    # n.fc4 =   L.InnerProduct(n.fc3, num_output=500, weight_filler=dict(type='xavier'))
+    # n.s4 = L.Sigmoid(n.fc4, in_place=True)
+    # n.fc5 =   L.InnerProduct(n.fc4, num_output=400, weight_filler=dict(type='xavier'))
+    # n.s5 = L.Sigmoid(n.fc5, in_place=True)
 
-    n.score = L.InnerProduct(n.fc2, num_output=30, weight_filler=dict(type='xavier'))
+
+
+
+    n.score = L.InnerProduct(n.fc1, num_output=30, weight_filler=dict(type='xavier'))
     
     if not deploy:
-        n.loss =  L.SoftmaxWithLoss(n.score, n.label)
-    
+        n.loss = L.SoftmaxWithLoss(n.score, n.label)
     return  n.to_proto()
     
 

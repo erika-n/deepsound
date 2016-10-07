@@ -1,5 +1,5 @@
-from sound_functions import get_fft
-from sound_functions import save_wav
+from sound_functions import get_fft, get_raw
+from sound_functions import save_wav, save_raw
 import numpy as np
 from pprint import pprint
 from shutil import copyfile
@@ -10,12 +10,12 @@ sys.path.insert(0, caffe_root + 'python')
 
 import caffe
 
-song = '../moresounds/13dune.wav'
+song = '../songsinmyhead/08dreams.wav'
 label = 8
-seconds = 2
-frames_per_second = 60
-model_def = 'soundnet/conv3_deploy.prototxt'
-model_weights = 'soundnet/conv3_1500.caffemodel'
+seconds = 1
+frames_per_second = 100
+model_def = 'soundnet/fiftypercent_deploy.prototxt'
+model_weights = 'soundnet/small_iter_10000.caffemodel'
 solver_file = 'soundnet/smallsolver.prototxt'
 restore_file = 'soundnet/small_iter_2500.solverstate'
 
@@ -23,16 +23,7 @@ def objective_L2(dst):
 	dst.diff[:] = dst.data 
 	
 
-def zoom(mydata):
-
-	newdata = np.ndarray((mydata.shape))
-	for i in range(mydata.shape[1]/2):
-		newdata[0,2*i, :] = mydata[0, i, :]
-		newdata[0,2*i + 1, :] = mydata[0, i, :]
-
-	return newdata
-
-def make_step(net, mydata, step_size=100000, end='pool2',
+def make_step(net, mydata, step_size=1000, end='conv1',
 	jitter=4, clip=True, objective=objective_L2, label=None):
 	'''Basic gradient ascent step.'''
 
@@ -92,7 +83,7 @@ def dream():
 
 	net = caffe.Net(model_def, model_weights, caffe.TRAIN)     
 
-	[a_song_data, a_song_labels] = get_fft(song, seconds, label, 200, frames_per_second=frames_per_second)
+	[a_song_data, a_song_labels] = get_raw(song, seconds, label, 200, frames_per_second=frames_per_second)
 
 
 
@@ -110,24 +101,23 @@ def dream():
 	print 'real class is: ' + str(input_labels[0])
 
 
+	duckunder = 1#10000
 
+	alldata = [input_data[0]*1000]	
+	step = make_step(net,input_data[15])
 
-	alldata = [input_data[0]]
-	divisor = 0.001# 1.0 #100000.0
-	step = make_step(net,input_data[0]/divisor)
-
-	for i in range(10):
-
-		if(i % 1== 0):
-			step = make_step(net, step/divisor)
+	for i in range(25):
+		step = make_step(net, step)
+		if(i %1== 0):
+			
 			print "step " + str(i)
-			alldata += [step]
+			alldata += [ step ]
 
 		
 
 
 
-	save_wav("will_it_dream.wav", np.array(alldata))
+	save_raw("will_it_dream.wav", np.array(alldata))
 
 
 

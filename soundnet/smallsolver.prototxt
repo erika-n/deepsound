@@ -9,9 +9,9 @@ test_iter: 10
 test_interval: 500
 iter_size: 1
 # The base learning rate, momentum and the weight decay of the network.
-base_lr: 0.001
+base_lr: 0.0005
 momentum: 0.9
-weight_decay: 0.00001
+weight_decay: 0.0000001
 # The learning rate policy
 lr_policy: "inv"
 
@@ -21,9 +21,9 @@ power: 0.75
 # Display every 100 iterations
 display: 10
 # The maximum number of iterations
-max_iter: 10000
+max_iter: 5000
 # snapshot intermediate results
-snapshot: 500
+snapshot: 1000
 snapshot_prefix: "soundnet/small"
 # solver mode: CPU or GPU
 solver_mode: GPU
