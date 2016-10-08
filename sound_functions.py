@@ -8,15 +8,6 @@ import sys
 rate = 44100
 
 
-# factors to fudge mag by to make it fit into 0-1
-f1 = 255.0
-f2 = 3
-f3 = 5
-f4 = 1
-f5 = 1
-
-
-
 
 def get_raw(filename, seconds, label, max_out = 0, width=400):
 
@@ -126,8 +117,8 @@ def time_to_shape(seconds, width):
 
 
 def test_save_wav():
-    filename = '../sounds/08dreams.wav'
-    [fftdata, fftlabels] = get_raw(filename, 5, 19, width=300, max_out=1)
+    filename = '../songsinmyhead/08dreams.wav'
+    [fftdata, fftlabels] = get_raw(filename, 5, 19, width=300, max_out=0)
     print 'max, min, avg:'
     print np.max(fftdata)
     print np.min(fftdata)

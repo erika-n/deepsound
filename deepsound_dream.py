@@ -11,22 +11,25 @@ sys.path.insert(0, caffe_root + 'python')
 
 import caffe
 
-song = '../songsinmyhead/02pinkmoon.wav'
+song = '../moresounds/11carpassing.wav'
+steps = 20
+skip = 1
+end = 'conv1'
 label = 8
-seconds = 2
-width=200
-model_def = 'soundnet/stereo1_deploy.prototxt'
-model_weights = 'soundnet/stereo1_5000.caffemodel'
+seconds = 4
+width=400
+model_def = 'soundnet/thirteen_deploy.prototxt'
+model_weights = 'soundnet/thirteen_10000.caffemodel'
 solver_file = 'soundnet/smallsolver.prototxt'
 restore_file = 'soundnet/small_iter_2500.solverstate'
-steps = 20
+
 outfile = "will_it_dream.wav"
 
 def objective_L2(dst):
 	dst.diff[:] = dst.data 
 	
 
-def make_step(net, mydata, step_size=300, end='conv3',
+def make_step(net, mydata, step_size=300, end='score',
 	jitter=4, clip=True, objective=objective_L2, label=None):
 	'''Basic gradient ascent step.'''
 
@@ -107,12 +110,12 @@ def dream():
 	duckunder = 1#10000
 
 	alldata = [input_data[0]*1000]	
-	step = make_step(net,np.zeros(input_data[15].shape))
+	step = make_step(net,np.zeros(input_data[0].shape), end=end)
 
-	for i in range(50):
-		step = make_step(net, step)
+	for i in range(steps):
+		step = make_step(net, step, end=end)
 
-		if(i %1== 0):
+		if(i %skip== 0):
 			
 			print "step " + str(i)
 			alldata += [ step ]
@@ -127,15 +130,19 @@ def dream():
 
 if __name__ == "__main__":
     # try:
-    #   opts, args = getopt.getopt(sys.argv[1:],"so")
+	opts, args = getopt.getopt(sys.argv[1:],"s:o:e:i:", ["steps=","output=","end=", "input=", "skip="])
     # except getopt.GetoptError:
-    #   print 'create_deepsound_net.py -s [steps] -o [output file]'
-    #   sys.exit(2)
-    # for opt, arg in opts:
-    #   	if opt == '-s':
-    #     	print "arg = " + arg
-    #     	steps = int(arg)
-    #     elif opt == '-o':
-    #     	outfile = arg
-
+    #   	print 'create_deepsound_net.py -s [steps] -o [output file]'
+    #   	sys.exit(2)
+	for opt, arg in opts:
+		if opt in ('-s', '--steps'):
+			steps = int(arg)
+		elif opt in ('-o', '--output'):
+			outfile = arg
+		elif opt in('-e', '--end'):
+			end = arg
+		elif opt in('-i', '--input'):
+			song = arg
+		elif opt in('--skip'):
+			skip = int(arg)
 	dream()

@@ -20,9 +20,9 @@ folder = '../songsinmyhead/'
 
 batch_size = 1
 numtests = 20
-test_seconds = 2
-test_width = 200
-num_per_song = 100
+test_seconds = 4
+test_width = 400
+num_per_song = 50
 
 solver_file = 'soundnet/smallsolver.prototxt'
 
@@ -39,7 +39,7 @@ os.environ["GLOG_minloglevel"] = "4"
 
 from caffe import layers as L, params as P
 
-from sound_functions import get_fft, get_raw, time_to_shape
+from sound_functions import get_raw, time_to_shape
 
 
 def shuffle_in_unison_inplace(a, b):
@@ -135,11 +135,11 @@ def soundnet(batch_size, shape, deploy=False):
     n.relu1 = L.ReLU(n.conv1, in_place=True)
     n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
 
-    n.conv2 = L.Convolution(n.pool1, kernel_size=5, num_output=30, weight_filler=dict(type='xavier'))
+    n.conv2 = L.Convolution(n.pool1, kernel_size=6, num_output=30, weight_filler=dict(type='xavier'))
     n.relu2 = L.ReLU(n.conv2, in_place=True)
-    n.pool2 = L.Pooling(n.conv2, kernel_size=3, stride=2, pool=P.Pooling.MAX)
+    n.pool2 = L.Pooling(n.conv2, kernel_size=2, stride=2, pool=P.Pooling.MAX)
     
-    n.conv3 = L.Convolution(n.pool2, kernel_size=3, num_output=30, weight_filler=dict(type='xavier'))
+    n.conv3 = L.Convolution(n.pool2, kernel_size=4, num_output=30, weight_filler=dict(type='xavier'))
     n.relu3= L.ReLU(n.conv3, in_place=True)
     n.pool3 = L.Pooling(n.conv3, kernel_size=2, stride=2, pool=P.Pooling.MAX)
     #n.conv4 = L.Convolution(n.pool3, kernel_size=2, num_output=30, weight_filler=dict(type='xavier'))
@@ -173,7 +173,7 @@ def soundnet(batch_size, shape, deploy=False):
 
 
 
-    n.score = L.InnerProduct(n.fc1, num_output=6, weight_filler=dict(type='xavier'))
+    n.score = L.InnerProduct(n.fc1, num_output=30, weight_filler=dict(type='xavier'))
     
     if not deploy:
         n.loss = L.SoftmaxWithLoss(n.score, n.label)
@@ -235,8 +235,8 @@ def main():
     print 'test labels:', solver.test_nets[0].blobs['label'].data[:]
 
 
-    niter = 5000
-    test_interval = 20
+    niter = 100000
+    test_interval = 200
     # losses will also be stored in the log
 
     int_tests = 20
