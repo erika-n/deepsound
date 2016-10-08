@@ -20,8 +20,8 @@ folder = '../songsinmyhead/'
 
 batch_size = 1
 numtests = 20
-test_seconds = 1
-test_fps = 100
+test_seconds = 2
+test_width = 200
 num_per_song = 100
 
 solver_file = 'soundnet/smallsolver.prototxt'
@@ -64,7 +64,7 @@ def preprocess_data():
     files = [f for f in listdir(folder) if isfile(join(folder, f))]
     for i in range(len(files)):
         label = int(files[i][:2])
-        [nextfft, nextlabel] = get_raw(folder + '/' + files[i], test_seconds, label, num_per_song, frames_per_second=test_fps)
+        [nextfft, nextlabel] = get_raw(folder + '/' + files[i], test_seconds, label, num_per_song, width=test_width)
         input_data += nextfft
         tmp_input_labels += [label for i in range(len(nextfft))]
 
@@ -125,28 +125,28 @@ def soundnet(batch_size, shape, deploy=False):
     n = caffe.NetSpec()
     
     if(deploy):
-        n.data = L.Input(shape=dict(dim=[1, 1, shape[0], shape[1]]))
+        n.data = L.Input(shape=dict(dim=[1, 2, shape[0], shape[1]]))
     else:
-        n.data, n.label = L.MemoryData(batch_size=batch_size, channels=1, height=shape[0], width=shape[1], ntop=2)
+        n.data, n.label = L.MemoryData(batch_size=batch_size, channels=2, height=shape[0], width=shape[1], ntop=2)
 
     
     #n.pow = L.Power(n.data,scale=0.00001)
     n.conv1 = L.Convolution(n.data, kernel_size=7, num_output=30, weight_filler=dict(type='xavier'))
     n.relu1 = L.ReLU(n.conv1, in_place=True)
-    #n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
 
-    n.conv2 = L.Convolution(n.conv1, kernel_size=5, num_output=30, weight_filler=dict(type='xavier'))
+    n.conv2 = L.Convolution(n.pool1, kernel_size=5, num_output=30, weight_filler=dict(type='xavier'))
     n.relu2 = L.ReLU(n.conv2, in_place=True)
-    #n.pool2 = L.Pooling(n.conv2, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    n.pool2 = L.Pooling(n.conv2, kernel_size=3, stride=2, pool=P.Pooling.MAX)
     
-    n.conv3 = L.Convolution(n.conv2, kernel_size=3, num_output=30, weight_filler=dict(type='xavier'))
+    n.conv3 = L.Convolution(n.pool2, kernel_size=3, num_output=30, weight_filler=dict(type='xavier'))
     n.relu3= L.ReLU(n.conv3, in_place=True)
-    #n.pool3 = L.Pooling(n.conv3, kernel_size=2, stride=2, pool=P.Pooling.MAX)
-    n.conv4 = L.Convolution(n.conv3, kernel_size=2, num_output=30, weight_filler=dict(type='xavier'))
+    n.pool3 = L.Pooling(n.conv3, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    #n.conv4 = L.Convolution(n.pool3, kernel_size=2, num_output=30, weight_filler=dict(type='xavier'))
     #n.pool4 = L.Pooling(n.conv4, kernel_size=2, stride=2, pool=P.Pooling.MAX)
     # n.conv5 = L.Convolution(n.pool4, kernel_size=3, num_output=30, weight_filler=dict(type='xavier'))
     # n.pool5 = L.Pooling(n.conv5, kernel_size=3, stride=2, pool=P.Pooling.MAX)        
-    n.fc1 =   L.InnerProduct(n.conv4, num_output=100, weight_filler=dict(type='xavier'))
+    n.fc1 =   L.InnerProduct(n.pool3, num_output=100, weight_filler=dict(type='xavier'))
 
 
     # n.relu1 = L.ReLU(n.fc1, in_place=True)
@@ -173,7 +173,7 @@ def soundnet(batch_size, shape, deploy=False):
 
 
 
-    n.score = L.InnerProduct(n.fc1, num_output=30, weight_filler=dict(type='xavier'))
+    n.score = L.InnerProduct(n.fc1, num_output=6, weight_filler=dict(type='xavier'))
     
     if not deploy:
         n.loss = L.SoftmaxWithLoss(n.score, n.label)
@@ -193,10 +193,10 @@ def main():
     
 
     with open(filename + '_train.prototxt', 'w') as f:
-        f.write("force_backward : true\n" + str(soundnet(batch_size, time_to_shape(test_seconds, test_fps), False)))
+        f.write("force_backward : true\n" + str(soundnet(batch_size, time_to_shape(test_seconds, test_width), False)))
     
     with open(filename + '_deploy.prototxt', 'w') as f:
-        f.write("force_backward : true\n" + str(soundnet(batch_size, time_to_shape(test_seconds, test_fps), True)))
+        f.write("force_backward : true\n" + str(soundnet(batch_size, time_to_shape(test_seconds, test_width), True)))
     
 
     print("writing " + filename)
@@ -294,6 +294,6 @@ if __name__ == "__main__":
       if opt == '-h':
          print 'create_deepsound_net.py [--preprocess]'
          sys.exit()
-      elif opt == '-h' or opt in ( "--preprocess"):
+      elif opt == '-p' or opt in ( "--preprocess"):
          preprocess_data()
     main()        

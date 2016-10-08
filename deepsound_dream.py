@@ -1,8 +1,9 @@
-from sound_functions import get_fft, get_raw
-from sound_functions import save_wav, save_raw
+from sound_functions import get_raw
+from sound_functions import save_raw
 import numpy as np
 from pprint import pprint
 from shutil import copyfile
+import getopt
 
 import sys
 caffe_root = '/home/erika/projects/caffe/'  # this file should be run from {caffe_root}/examples (otherwise change this line)
@@ -10,20 +11,22 @@ sys.path.insert(0, caffe_root + 'python')
 
 import caffe
 
-song = '../songsinmyhead/08dreams.wav'
+song = '../songsinmyhead/02pinkmoon.wav'
 label = 8
-seconds = 1
-frames_per_second = 100
-model_def = 'soundnet/fiftypercent_deploy.prototxt'
-model_weights = 'soundnet/small_iter_10000.caffemodel'
+seconds = 2
+width=200
+model_def = 'soundnet/stereo1_deploy.prototxt'
+model_weights = 'soundnet/stereo1_5000.caffemodel'
 solver_file = 'soundnet/smallsolver.prototxt'
 restore_file = 'soundnet/small_iter_2500.solverstate'
+steps = 20
+outfile = "will_it_dream.wav"
 
 def objective_L2(dst):
 	dst.diff[:] = dst.data 
 	
 
-def make_step(net, mydata, step_size=1000, end='conv1',
+def make_step(net, mydata, step_size=300, end='conv3',
 	jitter=4, clip=True, objective=objective_L2, label=None):
 	'''Basic gradient ascent step.'''
 
@@ -83,7 +86,7 @@ def dream():
 
 	net = caffe.Net(model_def, model_weights, caffe.TRAIN)     
 
-	[a_song_data, a_song_labels] = get_raw(song, seconds, label, 200, frames_per_second=frames_per_second)
+	[a_song_data, a_song_labels] = get_raw(song, seconds, label, 200, width=width)
 
 
 
@@ -104,10 +107,11 @@ def dream():
 	duckunder = 1#10000
 
 	alldata = [input_data[0]*1000]	
-	step = make_step(net,input_data[15])
+	step = make_step(net,np.zeros(input_data[15].shape))
 
-	for i in range(25):
+	for i in range(50):
 		step = make_step(net, step)
+
 		if(i %1== 0):
 			
 			print "step " + str(i)
@@ -117,9 +121,21 @@ def dream():
 
 
 
-	save_raw("will_it_dream.wav", np.array(alldata))
+	save_raw(outfile, np.array(alldata))
 
 
 
 if __name__ == "__main__":
+    # try:
+    #   opts, args = getopt.getopt(sys.argv[1:],"so")
+    # except getopt.GetoptError:
+    #   print 'create_deepsound_net.py -s [steps] -o [output file]'
+    #   sys.exit(2)
+    # for opt, arg in opts:
+    #   	if opt == '-s':
+    #     	print "arg = " + arg
+    #     	steps = int(arg)
+    #     elif opt == '-o':
+    #     	outfile = arg
+
 	dream()

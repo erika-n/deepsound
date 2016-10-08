@@ -6,9 +6,9 @@ layer {
   input_param {
     shape {
       dim: 1
-      dim: 1
-      dim: 100
+      dim: 2
       dim: 441
+      dim: 200
     }
   }
 }
@@ -32,9 +32,20 @@ layer {
   top: "conv1"
 }
 layer {
+  name: "pool1"
+  type: "Pooling"
+  bottom: "conv1"
+  top: "pool1"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
   name: "conv2"
   type: "Convolution"
-  bottom: "conv1"
+  bottom: "pool1"
   top: "conv2"
   convolution_param {
     num_output: 30
@@ -51,9 +62,20 @@ layer {
   top: "conv2"
 }
 layer {
+  name: "pool2"
+  type: "Pooling"
+  bottom: "conv2"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    kernel_size: 3
+    stride: 2
+  }
+}
+layer {
   name: "conv3"
   type: "Convolution"
-  bottom: "conv2"
+  bottom: "pool2"
   top: "conv3"
   convolution_param {
     num_output: 30
@@ -70,22 +92,20 @@ layer {
   top: "conv3"
 }
 layer {
-  name: "conv4"
-  type: "Convolution"
+  name: "pool3"
+  type: "Pooling"
   bottom: "conv3"
-  top: "conv4"
-  convolution_param {
-    num_output: 30
+  top: "pool3"
+  pooling_param {
+    pool: MAX
     kernel_size: 2
-    weight_filler {
-      type: "xavier"
-    }
+    stride: 2
   }
 }
 layer {
   name: "fc1"
   type: "InnerProduct"
-  bottom: "conv4"
+  bottom: "pool3"
   top: "fc1"
   inner_product_param {
     num_output: 100
@@ -100,7 +120,7 @@ layer {
   bottom: "fc1"
   top: "score"
   inner_product_param {
-    num_output: 30
+    num_output: 6
     weight_filler {
       type: "xavier"
     }
