@@ -20,8 +20,8 @@ folder = '../songsinmyhead/'
 
 batch_size = 1
 numtests = 20
-test_seconds = 4
-test_width = 400
+test_seconds = 1
+test_width = 100
 num_per_song = 50
 
 solver_file = 'soundnet/smallsolver.prototxt'
@@ -131,22 +131,22 @@ def soundnet(batch_size, shape, deploy=False):
 
     
     #n.pow = L.Power(n.data,scale=0.00001)
-    n.conv1 = L.Convolution(n.data, kernel_size=7, num_output=30, weight_filler=dict(type='xavier'))
-    n.relu1 = L.ReLU(n.conv1, in_place=True)
-    n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    # n.conv1 = L.Convolution(n.data, kernel_size=7, num_output=30, weight_filler=dict(type='xavier'))
+    # n.relu1 = L.ReLU(n.conv1, in_place=True)
+    # n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
 
-    n.conv2 = L.Convolution(n.pool1, kernel_size=6, num_output=30, weight_filler=dict(type='xavier'))
-    n.relu2 = L.ReLU(n.conv2, in_place=True)
-    n.pool2 = L.Pooling(n.conv2, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    # n.conv2 = L.Convolution(n.pool1, kernel_size=6, num_output=30, weight_filler=dict(type='xavier'))
+    # n.relu2 = L.ReLU(n.conv2, in_place=True)
+    # n.pool2 = L.Pooling(n.conv2, kernel_size=2, stride=2, pool=P.Pooling.MAX)
     
-    n.conv3 = L.Convolution(n.pool2, kernel_size=4, num_output=30, weight_filler=dict(type='xavier'))
-    n.relu3= L.ReLU(n.conv3, in_place=True)
-    n.pool3 = L.Pooling(n.conv3, kernel_size=2, stride=2, pool=P.Pooling.MAX)
-    #n.conv4 = L.Convolution(n.pool3, kernel_size=2, num_output=30, weight_filler=dict(type='xavier'))
-    #n.pool4 = L.Pooling(n.conv4, kernel_size=2, stride=2, pool=P.Pooling.MAX)
-    # n.conv5 = L.Convolution(n.pool4, kernel_size=3, num_output=30, weight_filler=dict(type='xavier'))
-    # n.pool5 = L.Pooling(n.conv5, kernel_size=3, stride=2, pool=P.Pooling.MAX)        
-    n.fc1 =   L.InnerProduct(n.pool3, num_output=100, weight_filler=dict(type='xavier'))
+    # n.conv3 = L.Convolution(n.pool2, kernel_size=4, num_output=30, weight_filler=dict(type='xavier'))
+    # n.relu3= L.ReLU(n.conv3, in_place=True)
+    # n.pool3 = L.Pooling(n.conv3, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    # #n.conv4 = L.Convolution(n.pool3, kernel_size=2, num_output=30, weight_filler=dict(type='xavier'))
+    # #n.pool4 = L.Pooling(n.conv4, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    # # n.conv5 = L.Convolution(n.pool4, kernel_size=3, num_output=30, weight_filler=dict(type='xavier'))
+    # # n.pool5 = L.Pooling(n.conv5, kernel_size=3, stride=2, pool=P.Pooling.MAX)        
+    # n.fc1 =   L.InnerProduct(n.pool3, num_output=100, weight_filler=dict(type='xavier'))
 
 
     # n.relu1 = L.ReLU(n.fc1, in_place=True)
@@ -154,12 +154,9 @@ def soundnet(batch_size, shape, deploy=False):
 
     
 
-    # # n.conv1 = L.Convolution(n.data, kernel_size=5, num_output=20, weight_filler=dict(type='xavier'))
-    # # n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
-    # # n.conv2 = L.Convolution(n.pool1, kernel_size=5, num_output=50, weight_filler=dict(type='xavier'))
-    # # n.pool2 = L.Pooling(n.conv2, kernel_size=2, stride=2, pool=P.Pooling.MAX)
-    # n.fc1 =  L.InnerProduct(n.data, num_output=1500, weight_filler=dict(type='xavier'))
-    # n.s1 = L.ReLU(n.fc1, in_place=True)
+
+    n.fc1 =  L.InnerProduct(n.data, num_output=1000, weight_filler=dict(type='xavier'))
+    n.s1 = L.Sigmoid(n.fc1, in_place=True)
     # n.fc2 =   L.InnerProduct(n.fc1, num_output=1000, weight_filler=dict(type='xavier'))
     # n.s2 = L.ReLU(n.fc2, in_place=True)
     # n.fc3 =   L.InnerProduct(n.fc2, num_output=600, weight_filler=dict(type='xavier'))
@@ -206,7 +203,7 @@ def main():
     ### load the solver and create train and test nets
     solver = None  # ignore this workaround for lmdb data (can't instantiate two solvers on the same data)
     solver = caffe.SGDSolver(solver_file)
-
+    #solver.restore('soundnet/thirteen_10000.solverstate')
 
     print "setting input arrays. input_data.shape:"
     print input_data.shape
@@ -235,8 +232,8 @@ def main():
     print 'test labels:', solver.test_nets[0].blobs['label'].data[:]
 
 
-    niter = 100000
-    test_interval = 200
+    niter = 10000
+    test_interval = 100
     # losses will also be stored in the log
 
     int_tests = 20
@@ -250,35 +247,38 @@ def main():
 
         
         if it == 0 or it % test_interval == 0:
-            correct = 0
-            answers = []
             print 'Iteration', it, 'testing...'
-            for test_it in range(int_tests):
-                solver.test_nets[0].forward()
-                # for lenet:
-                print "hypothesis: " + str(solver.test_nets[0].blobs['score'].data.argmax(1))
-                print "actual: " + str(solver.test_nets[0].blobs['label'].data)
-                print "loss: " + str(solver.test_nets[0].blobs['loss'].data)
-                correct += sum(solver.test_nets[0].blobs['label'].data[0][0] == solver.test_nets[0].blobs['score'].data.argmax(1))
-                answers.append(solver.test_nets[0].blobs['score'].data.argmax(1))
-                # for google net:
-                # print "hypothesis: " + str(solver.test_nets[0].blobs['loss1/classifier'].data.argmax(1))
-                # print "top1:" + str(solver.test_nets[0].blobs['loss1/top-1'].data)
-                # print "actual: " + str(solver.test_nets[0].blobs['label'].data)
-                # print "loss: " + str(solver.test_nets[0].blobs['loss1/loss1'].data) 
-                # correct += sum(solver.test_nets[0].blobs['label'].data[0][0] == solver.test_nets[0].blobs['loss1/top-1'].data)
-                # answers.append(solver.test_nets[0].blobs['loss1/top-1'].data)
-            print str(correct) + "/" + str(int_tests)    
-            print "unique: " 
-            print np.unique(np.array(answers))
-            solver.net.backward()
-           
-
+            print "Training set: "
+            test_net(solver.net, int_tests)
+            print "Test set:"
+            test_net(solver.test_nets[0], int_tests)
         
         solver.step(1)  # SGD by Caffe
 
 
-
+def test_net(net, numtests):
+    correct = 0
+    answers = []
+    
+    for test_it in range(numtests):
+        net.forward()
+        # for lenet:
+        print "hypothesis: " + str(net.blobs['score'].data.argmax(1))
+        print "actual: " + str(net.blobs['label'].data)
+        print "loss: " + str(net.blobs['loss'].data)
+        correct += sum(net.blobs['label'].data[0][0] == net.blobs['score'].data.argmax(1))
+        answers.append(net.blobs['score'].data.argmax(1))
+        # for google net:
+        # print "hypothesis: " + str(solver.test_nets[0].blobs['loss1/classifier'].data.argmax(1))
+        # print "top1:" + str(solver.test_nets[0].blobs['loss1/top-1'].data)
+        # print "actual: " + str(solver.test_nets[0].blobs['label'].data)
+        # print "loss: " + str(solver.test_nets[0].blobs['loss1/loss1'].data) 
+        # correct += sum(solver.test_nets[0].blobs['label'].data[0][0] == solver.test_nets[0].blobs['loss1/top-1'].data)
+        # answers.append(solver.test_nets[0].blobs['loss1/top-1'].data)
+    print str(correct) + "/" + str(numtests)    
+    print "unique: " 
+    print np.unique(np.array(answers))
+      
 
 
 

@@ -14,12 +14,14 @@ import caffe
 song = '../moresounds/11carpassing.wav'
 steps = 20
 skip = 1
+
 end = 'conv1'
 label = 8
-seconds = 4
-width=400
-model_def = 'soundnet/thirteen_deploy.prototxt'
-model_weights = 'soundnet/thirteen_10000.caffemodel'
+seconds = 1
+width=200
+channels = 1
+model_def = 'soundnet/fiftypercent_deploy.prototxt'
+model_weights = 'soundnet/fiftypercent_really75_10000.caffemodel'
 solver_file = 'soundnet/smallsolver.prototxt'
 restore_file = 'soundnet/small_iter_2500.solverstate'
 
@@ -27,9 +29,8 @@ outfile = "will_it_dream.wav"
 
 def objective_L2(dst):
 	dst.diff[:] = dst.data 
-	
 
-def make_step(net, mydata, step_size=300, end='score',
+def make_step(net, mydata, step_size=1000, end='score',
 	jitter=4, clip=True, objective=objective_L2, label=None):
 	'''Basic gradient ascent step.'''
 
@@ -39,7 +40,7 @@ def make_step(net, mydata, step_size=300, end='score',
 
 
 	
-	src.data[0][:] = mydata
+	src.data[0][:] = mydata*0.01
 
 
 
@@ -53,7 +54,8 @@ def make_step(net, mydata, step_size=300, end='score',
 
 
 	if label:
-		dst.diff[0][label] = 100
+		dst.diff[0][:] = 0.01
+		dst.diff[0][label] = 1
 
 	net.backward(start=end) 
 
@@ -83,13 +85,9 @@ def dream():
 	caffe.set_mode_cpu()
 
 
-	#model_weights = 'soundnet/simplenet3_5_500.caffemodel'
-	#input_dim: 16
-	#input_dim: 22050
-
 	net = caffe.Net(model_def, model_weights, caffe.TRAIN)     
 
-	[a_song_data, a_song_labels] = get_raw(song, seconds, label, 200, width=width)
+	[a_song_data, a_song_labels] = get_raw(song, seconds, label, 200, width=width, channels=channels)
 
 
 
@@ -99,8 +97,8 @@ def dream():
 	print net.blobs['data'].data.shape
 
 
-	net.blobs['data'].data[0][:] = input_data[0]
-	#net.blobs['label'].data[0] = input_labels
+	net.blobs['data'].data[0][:] = input_data[5]
+
 	net.forward()
 
 	print 'predicted class is: ' + str(net.blobs['score'].data.argmax(1))
@@ -109,22 +107,26 @@ def dream():
 
 	duckunder = 1#10000
 
-	alldata = [input_data[0]*1000]	
-	step = make_step(net,np.zeros(input_data[0].shape), end=end)
+	m = 30000.0
+	alldata = []	
+	
+	step = make_step(net,input_data[0], end=end)
 
 	for i in range(steps):
-		step = make_step(net, step, end=end)
+
+		
 
 		if(i %skip== 0):
 			
 			print "step " + str(i)
 			alldata += [ step ]
+		step = make_step(net, step, end=end)
 
 		
 
 
 
-	save_raw(outfile, np.array(alldata))
+	save_raw(outfile, np.array(alldata), channels=channels)
 
 
 

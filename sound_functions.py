@@ -9,9 +9,9 @@ rate = 44100
 
 
 
-def get_raw(filename, seconds, label, max_out = 0, width=400):
+def get_raw(filename, seconds, label, max_out = 0, width=400, channels=2):
 
-    allthedata = get_all_the_data(filename, seconds, max_out, width)
+    allthedata = get_all_the_data(filename, seconds, max_out, width, channels)
     thelabel = np.array([label])
     labeldata = []
     rawdata = []
@@ -24,7 +24,7 @@ def get_raw(filename, seconds, label, max_out = 0, width=400):
 
 
 
-def get_all_the_data(filename, seconds, max_out, width):
+def get_all_the_data(filename, seconds, max_out, width, channels=2):
 
     data = wav.read(filename)
 
@@ -35,22 +35,26 @@ def get_all_the_data(filename, seconds, max_out, width):
     data = data/(2*np.max(data))
 
 
-    # Convert to mono
-    # if(data.ndim > 1):
-    #     data = np.sum(data, axis=1)
-    # print data.shape
+    # Convert to mono if need be
+    if(channels < 2 and data.ndim > 1):
+        data = np.sum(data, axis=1)
 
-    data = np.swapaxes(data, 0, 1) # caffe wants channel to be first axis
-
-
-    things = int(float(len(data[0]))/(rate*seconds))
+    
+    else:
+        data = np.swapaxes(data, 0, 1) # caffe wants channel to be first axis
+    print data.shape
+    things = int(float(data.shape[0])/(rate*seconds))
+    
     
     if(max_out > 0):
         things = min(things, max_out)
     print "things: " + str(things)
     m = seconds*rate
-    data = data[:,0:int(m*things)]
-    data = data.reshape((2, data.size/(2*width), width))
+    if(channels > 1):
+        data = data[:,0:int(m*things)]
+    else:
+        data = data[0:int(m*things)]
+    data = data.reshape((channels, data.size/(channels*width), width))
     print data.shape
     allthedata = []
     d = data.shape[1]/things
@@ -69,7 +73,7 @@ def get_all_the_data(filename, seconds, max_out, width):
 
 
 
-def save_raw(filename, allthedata):
+def save_raw(filename, allthedata, channels=2):
 
     allthedata = np.array(allthedata)
     print "allthedata shape:"
@@ -80,7 +84,8 @@ def save_raw(filename, allthedata):
         data = allthedata[i]
        
         data = data.reshape((data.shape[0], data.size/data.shape[0]))
-        data = np.swapaxes(data, 0, 1)
+        if(channels == 2):
+            data = np.swapaxes(data, 0, 1)
         #data = data*20000.0
      
        
@@ -100,7 +105,7 @@ def save_raw(filename, allthedata):
     # Write to disk
     rate = 44100
     output_file = wave.open(filename, "w")
-    output_file.setparams((2, 2, rate, 0, "NONE", "not compressed"))
+    output_file.setparams((channels, 2, rate, 0, "NONE", "not compressed"))
 
     output_file.writeframesraw(outdata)
     output_file.close()    
