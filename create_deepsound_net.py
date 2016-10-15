@@ -20,8 +20,9 @@ folder = '../songsinmyhead/'
 
 batch_size = 1
 numtests = 20
-test_seconds = 1
-test_width = 100
+test_seconds = 4
+#test_width = 100
+test_frames_per_second = 60
 num_per_song = 50
 
 solver_file = 'soundnet/smallsolver.prototxt'
@@ -39,7 +40,7 @@ os.environ["GLOG_minloglevel"] = "4"
 
 from caffe import layers as L, params as P
 
-from sound_functions import get_raw, time_to_shape
+from sound_functions import get_fft, time_to_shape
 
 
 def shuffle_in_unison_inplace(a, b):
@@ -64,7 +65,7 @@ def preprocess_data():
     files = [f for f in listdir(folder) if isfile(join(folder, f))]
     for i in range(len(files)):
         label = int(files[i][:2])
-        [nextfft, nextlabel] = get_raw(folder + '/' + files[i], test_seconds, label, num_per_song, width=test_width)
+        [nextfft, nextlabel] = get_fft(folder + '/' + files[i], test_seconds, label, num_per_song, frames_per_second=test_frames_per_second)
         input_data += nextfft
         tmp_input_labels += [label for i in range(len(nextfft))]
 
@@ -130,10 +131,12 @@ def soundnet(batch_size, shape, deploy=False):
         n.data, n.label = L.MemoryData(batch_size=batch_size, channels=2, height=shape[0], width=shape[1], ntop=2)
 
     
-    #n.pow = L.Power(n.data,scale=0.00001)
-    # n.conv1 = L.Convolution(n.data, kernel_size=7, num_output=30, weight_filler=dict(type='xavier'))
-    # n.relu1 = L.ReLU(n.conv1, in_place=True)
-    # n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    
+    #n.magslice, n.phaseslice = L.Slice(n.data,axis=1, slice_point=[1], ntop=2 )
+    n.pow = L.Power(n.data,scale=0.00001)
+    n.conv1 = L.Convolution(n.pow, kernel_size=6, num_output=30, weight_filler=dict(type='xavier'))
+    n.relu1 = L.ReLU(n.conv1, in_place=True)
+    n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
 
     # n.conv2 = L.Convolution(n.pool1, kernel_size=6, num_output=30, weight_filler=dict(type='xavier'))
     # n.relu2 = L.ReLU(n.conv2, in_place=True)
@@ -142,12 +145,17 @@ def soundnet(batch_size, shape, deploy=False):
     # n.conv3 = L.Convolution(n.pool2, kernel_size=4, num_output=30, weight_filler=dict(type='xavier'))
     # n.relu3= L.ReLU(n.conv3, in_place=True)
     # n.pool3 = L.Pooling(n.conv3, kernel_size=2, stride=2, pool=P.Pooling.MAX)
-    # #n.conv4 = L.Convolution(n.pool3, kernel_size=2, num_output=30, weight_filler=dict(type='xavier'))
-    # #n.pool4 = L.Pooling(n.conv4, kernel_size=2, stride=2, pool=P.Pooling.MAX)
-    # # n.conv5 = L.Convolution(n.pool4, kernel_size=3, num_output=30, weight_filler=dict(type='xavier'))
-    # # n.pool5 = L.Pooling(n.conv5, kernel_size=3, stride=2, pool=P.Pooling.MAX)        
-    # n.fc1 =   L.InnerProduct(n.pool3, num_output=100, weight_filler=dict(type='xavier'))
+    #n.conv4 = L.Convolution(n.pool3, kernel_size=2, num_output=30, weight_filler=dict(type='xavier'))
+    #n.pool4 = L.Pooling(n.conv4, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    # n.conv5 = L.Convolution(n.pool4, kernel_size=3, num_output=30, weight_filler=dict(type='xavier'))
+    # n.pool5 = L.Pooling(n.conv5, kernel_size=3, stride=2, pool=P.Pooling.MAX)    
 
+
+    
+
+    # n.fc1 =   L.InnerProduct(n.pool3, num_output=1000, weight_filler=dict(type='xavier'))
+    # n.fc2 = L.InnerProduct(n.phaseslice, num_output = 1000,  weight_filler=dict(type='xavier'))
+    # n.concat = L.Concat(n.fc1, n.fc2)
 
     # n.relu1 = L.ReLU(n.fc1, in_place=True)
 
@@ -155,8 +163,8 @@ def soundnet(batch_size, shape, deploy=False):
     
 
 
-    n.fc1 =  L.InnerProduct(n.data, num_output=1000, weight_filler=dict(type='xavier'))
-    n.s1 = L.Sigmoid(n.fc1, in_place=True)
+    # n.fc1 =  L.InnerProduct(n.data, num_output=1000, weight_filler=dict(type='xavier'))
+    # n.s1 = L.Sigmoid(n.fc1, in_place=True)
     # n.fc2 =   L.InnerProduct(n.fc1, num_output=1000, weight_filler=dict(type='xavier'))
     # n.s2 = L.ReLU(n.fc2, in_place=True)
     # n.fc3 =   L.InnerProduct(n.fc2, num_output=600, weight_filler=dict(type='xavier'))
@@ -167,10 +175,12 @@ def soundnet(batch_size, shape, deploy=False):
     # n.fc5 =   L.InnerProduct(n.fc4, num_output=400, weight_filler=dict(type='xavier'))
     # n.s5 = L.Sigmoid(n.fc5, in_place=True)
 
+    n.fc3 = L.InnerProduct(n.pool1, num_output = 200,  weight_filler=dict(type='xavier'))
 
 
 
-    n.score = L.InnerProduct(n.fc1, num_output=30, weight_filler=dict(type='xavier'))
+
+    n.score = L.InnerProduct(n.fc3, num_output=30, weight_filler=dict(type='xavier'))
     
     if not deploy:
         n.loss = L.SoftmaxWithLoss(n.score, n.label)
@@ -190,10 +200,12 @@ def main():
     
 
     with open(filename + '_train.prototxt', 'w') as f:
-        f.write("force_backward : true\n" + str(soundnet(batch_size, time_to_shape(test_seconds, test_width), False)))
+        print "time to shape: "
+        print time_to_shape(test_seconds, test_frames_per_second)
+        f.write("force_backward : true\n" + str(soundnet(batch_size, time_to_shape(test_seconds, test_frames_per_second), False)))
     
     with open(filename + '_deploy.prototxt', 'w') as f:
-        f.write("force_backward : true\n" + str(soundnet(batch_size, time_to_shape(test_seconds, test_width), True)))
+        f.write("force_backward : true\n" + str(soundnet(batch_size, time_to_shape(test_seconds, test_frames_per_second), True)))
     
 
     print("writing " + filename)

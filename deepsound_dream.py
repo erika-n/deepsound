@@ -1,5 +1,5 @@
-from sound_functions import get_raw
-from sound_functions import save_raw
+from sound_functions import get_raw, get_fft
+from sound_functions import save_raw, save_wav
 import numpy as np
 from pprint import pprint
 from shutil import copyfile
@@ -18,10 +18,11 @@ skip = 1
 end = 'conv1'
 label = 8
 seconds = 1
-width=200
+#width=200
+frames_per_second = 60
 channels = 1
-model_def = 'soundnet/fiftypercent_deploy.prototxt'
-model_weights = 'soundnet/fiftypercent_really75_10000.caffemodel'
+model_def = 'soundnet/test_concat_deploy.prototxt'
+model_weights = 'soundnet/test_concat_5600.caffemodel'
 solver_file = 'soundnet/smallsolver.prototxt'
 restore_file = 'soundnet/small_iter_2500.solverstate'
 
@@ -30,7 +31,7 @@ outfile = "will_it_dream.wav"
 def objective_L2(dst):
 	dst.diff[:] = dst.data 
 
-def make_step(net, mydata, step_size=1000, end='score',
+def make_step(net, mydata, step_size=10000, end='score',
 	jitter=4, clip=True, objective=objective_L2, label=None):
 	'''Basic gradient ascent step.'''
 
@@ -40,7 +41,7 @@ def make_step(net, mydata, step_size=1000, end='score',
 
 
 	
-	src.data[0][:] = mydata*0.01
+	src.data[0][:] = mydata
 
 
 
@@ -53,9 +54,9 @@ def make_step(net, mydata, step_size=1000, end='score',
 	objective(dst)  # specify the optimization objective 
 
 
-	if label:
-		dst.diff[0][:] = 0.01
-		dst.diff[0][label] = 1
+	# if label:
+	# 	dst.diff[0][:] = 0.01
+	# 	dst.diff[0][label] = 1
 
 	net.backward(start=end) 
 
@@ -67,8 +68,10 @@ def make_step(net, mydata, step_size=1000, end='score',
 
 	# normalized ascent step 
 	ascent = step_size/np.abs(g).mean() * g
-
+	
+	#ascent[0, :] = ascent[0]
 	print "ascent: "
+	print ascent[0, :].shape
 	pprint(ascent)
 
 	
@@ -87,7 +90,7 @@ def dream():
 
 	net = caffe.Net(model_def, model_weights, caffe.TRAIN)     
 
-	[a_song_data, a_song_labels] = get_raw(song, seconds, label, 200, width=width, channels=channels)
+	[a_song_data, a_song_labels] = get_fft(song, seconds, label, frames_per_second=frames_per_second)
 
 
 
@@ -110,23 +113,26 @@ def dream():
 	m = 30000.0
 	alldata = []	
 	
-	step = make_step(net,input_data[0], end=end)
-
+	step = make_step(net,input_data[6], end=end)
+	step2 = make_step(net,input_data[6], end='fc2')
 	for i in range(steps):
 
 		
 
-		if(i %skip== 0):
+		if(i %skip == 0):
 			
 			print "step " + str(i)
+
 			alldata += [ step ]
 		step = make_step(net, step, end=end)
+		#step2 = make_step(net, step2, end='fc2')
+		step[1, :] = 0.0
 
 		
 
 
 
-	save_raw(outfile, np.array(alldata), channels=channels)
+	save_wav(outfile, np.array(alldata))
 
 
 
