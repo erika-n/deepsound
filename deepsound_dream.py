@@ -32,7 +32,7 @@ def objective_L2(dst):
 	dst.diff[:] = dst.data 
 
 def make_step(net, mydata, step_size=200000, end='score',
-	jitter=4, clip=True, objective=objective_L2, label=None):
+	 objective=objective_L2, label=None):
 	'''Basic gradient ascent step.'''
 
 	
@@ -107,17 +107,13 @@ def dream():
 	print 'predicted class is: ' + str(net.blobs['score'].data.argmax(1))
 	print 'real class is: ' + str(input_labels[0])
 
-
-	duckunder = 1#10000
-
-	m = 30000.0
 	seed = np.zeros(input_data[-10].shape)
 	alldata = [seed]	
-	l = 1
+
 	
+	l = 0
 	step = make_step(net, seed, end=end, label=l)
 
-	l = 0
 	for i in range(steps):
 
 		
