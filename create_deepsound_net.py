@@ -20,9 +20,9 @@ folder = '../songsinmyhead/'
 
 batch_size = 1
 numtests = 20
-test_seconds = 4
+test_seconds = 3
 #test_width = 100
-test_frames_per_second = 60
+test_frames_per_second = 30
 num_per_song = 50
 
 solver_file = 'soundnet/smallsolver.prototxt'
@@ -126,17 +126,17 @@ def soundnet(batch_size, shape, deploy=False):
     n = caffe.NetSpec()
     
     if(deploy):
-        n.data = L.Input(shape=dict(dim=[1, 2, shape[0], shape[1]]))
+        n.data = L.Input(shape=dict(dim=[1, 1, shape[0], shape[1]]))
     else:
-        n.data, n.label = L.MemoryData(batch_size=batch_size, channels=2, height=shape[0], width=shape[1], ntop=2)
+        n.data, n.label = L.MemoryData(batch_size=batch_size, channels=1, height=shape[0], width=shape[1], ntop=2)
 
     
     
     #n.magslice, n.phaseslice = L.Slice(n.data,axis=1, slice_point=[1], ntop=2 )
-    n.pow = L.Power(n.data,scale=0.00001)
-    n.conv1 = L.Convolution(n.pow, kernel_size=6, num_output=30, weight_filler=dict(type='xavier'))
-    n.relu1 = L.ReLU(n.conv1, in_place=True)
-    n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    # n.pow = L.Power(n.data,scale=0.00001)
+    # n.conv1 = L.Convolution(n.pow, kernel_size=6, num_output=30, weight_filler=dict(type='xavier'))
+    # n.relu1 = L.ReLU(n.conv1, in_place=True)
+    # n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
 
     # n.conv2 = L.Convolution(n.pool1, kernel_size=6, num_output=30, weight_filler=dict(type='xavier'))
     # n.relu2 = L.ReLU(n.conv2, in_place=True)
@@ -163,19 +163,19 @@ def soundnet(batch_size, shape, deploy=False):
     
 
 
-    # n.fc1 =  L.InnerProduct(n.data, num_output=1000, weight_filler=dict(type='xavier'))
-    # n.s1 = L.Sigmoid(n.fc1, in_place=True)
-    # n.fc2 =   L.InnerProduct(n.fc1, num_output=1000, weight_filler=dict(type='xavier'))
-    # n.s2 = L.ReLU(n.fc2, in_place=True)
-    # n.fc3 =   L.InnerProduct(n.fc2, num_output=600, weight_filler=dict(type='xavier'))
-    # n.s3 = L.ReLU(n.fc3, in_place=True)
+    n.fc1 =  L.InnerProduct(n.data, num_output=600, weight_filler=dict(type='xavier'))
+    n.s1 = L.Sigmoid(n.fc1, in_place=True)
+    n.fc2 =   L.InnerProduct(n.fc1, num_output=400, weight_filler=dict(type='xavier'))
+    n.s2 = L.Sigmoid(n.fc2, in_place=True)
+    n.fc3 =   L.InnerProduct(n.fc2, num_output=300, weight_filler=dict(type='xavier'))
+    n.s3 = L.Sigmoid(n.fc3, in_place=True)
     
     # n.fc4 =   L.InnerProduct(n.fc3, num_output=500, weight_filler=dict(type='xavier'))
     # n.s4 = L.Sigmoid(n.fc4, in_place=True)
     # n.fc5 =   L.InnerProduct(n.fc4, num_output=400, weight_filler=dict(type='xavier'))
     # n.s5 = L.Sigmoid(n.fc5, in_place=True)
 
-    n.fc3 = L.InnerProduct(n.pool1, num_output = 200,  weight_filler=dict(type='xavier'))
+    # n.fc3 = L.InnerProduct(n.pool1, num_output = 200,  weight_filler=dict(type='xavier'))
 
 
 
@@ -245,7 +245,7 @@ def main():
 
 
     niter = 10000
-    test_interval = 100
+    test_interval = 10
     # losses will also be stored in the log
 
     int_tests = 20

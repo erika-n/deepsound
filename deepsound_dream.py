@@ -17,12 +17,12 @@ skip = 1
 
 end = 'conv1'
 label = 8
-seconds = 1
+seconds = 3
 #width=200
-frames_per_second = 60
+frames_per_second = 30
 channels = 1
-model_def = 'soundnet/test_concat_deploy.prototxt'
-model_weights = 'soundnet/test_concat_5600.caffemodel'
+model_def = 'soundnet/layercake_deploy.prototxt'
+model_weights = 'soundnet/layercake_2400.caffemodel'
 solver_file = 'soundnet/smallsolver.prototxt'
 restore_file = 'soundnet/small_iter_2500.solverstate'
 
@@ -31,7 +31,7 @@ outfile = "will_it_dream.wav"
 def objective_L2(dst):
 	dst.diff[:] = dst.data 
 
-def make_step(net, mydata, step_size=10000, end='score',
+def make_step(net, mydata, step_size=200000, end='score',
 	jitter=4, clip=True, objective=objective_L2, label=None):
 	'''Basic gradient ascent step.'''
 
@@ -41,12 +41,13 @@ def make_step(net, mydata, step_size=10000, end='score',
 
 
 	
-	src.data[0][:] = mydata
-
+	src.data[0][:] = 0.01*mydata
 
 
 
 	net.forward(end=end)
+	if(end == 'score'):
+		print 'in ascent, predicted class is: ' + str(net.blobs['score'].data.argmax(1))
 	# print "dst.data:"
 	# pprint(dst.data)
 	
@@ -54,9 +55,8 @@ def make_step(net, mydata, step_size=10000, end='score',
 	objective(dst)  # specify the optimization objective 
 
 
-	# if label:
-	# 	dst.diff[0][:] = 0.01
-	# 	dst.diff[0][label] = 1
+	if label:
+		dst.diff[0][label] = 100
 
 	net.backward(start=end) 
 
@@ -111,10 +111,13 @@ def dream():
 	duckunder = 1#10000
 
 	m = 30000.0
-	alldata = []	
+	seed = np.zeros(input_data[-10].shape)
+	alldata = [seed]	
+	l = 1
 	
-	step = make_step(net,input_data[6], end=end)
-	step2 = make_step(net,input_data[6], end='fc2')
+	step = make_step(net, seed, end=end, label=l)
+
+	l = 0
 	for i in range(steps):
 
 		
@@ -124,9 +127,8 @@ def dream():
 			print "step " + str(i)
 
 			alldata += [ step ]
-		step = make_step(net, step, end=end)
-		#step2 = make_step(net, step2, end='fc2')
-		step[1, :] = 0.0
+		step = make_step(net, seed, end=end, label=l)
+		l = l + 1
 
 		
 

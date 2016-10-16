@@ -109,7 +109,7 @@ def save_wav(filename, allthedata):
         # # Put data back in the right format
         
 
-        data = 0.5*data
+        data = 0.05*data
         data = data.astype(np.int16)
         print data.shape
         print i
@@ -140,7 +140,7 @@ def mag_phase_to_complex(mag, phase):
 
 def time_to_shape(seconds, frames_per_second):
     fftwidth = rate/frames_per_second
-    frames = seconds*frames_per_second
+    frames = 2*seconds*frames_per_second
     return [  int(frames), int(fftwidth)] 
 
 
