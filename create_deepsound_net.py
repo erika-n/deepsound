@@ -20,10 +20,10 @@ folder = '../songsinmyhead/'
 
 batch_size = 1
 numtests = 20
-test_seconds = 3
+test_seconds = 0.5
 #test_width = 100
 test_frames_per_second = 30
-num_per_song = 50
+num_per_song = 70
 
 solver_file = 'soundnet/smallsolver.prototxt'
 
@@ -163,12 +163,12 @@ def soundnet(batch_size, shape, deploy=False):
     
 
 
-    n.fc1 =  L.InnerProduct(n.data, num_output=600, weight_filler=dict(type='xavier'))
-    n.s1 = L.Sigmoid(n.fc1, in_place=True)
-    n.fc2 =   L.InnerProduct(n.fc1, num_output=400, weight_filler=dict(type='xavier'))
-    n.s2 = L.Sigmoid(n.fc2, in_place=True)
-    n.fc3 =   L.InnerProduct(n.fc2, num_output=300, weight_filler=dict(type='xavier'))
-    n.s3 = L.Sigmoid(n.fc3, in_place=True)
+    n.fc1 =  L.InnerProduct(n.data, num_output=1000, weight_filler=dict(type='xavier'))
+    n.s1 = L.ReLU(n.fc1, in_place=True)
+    # n.fc2 =   L.InnerProduct(n.fc1, num_output=400, weight_filler=dict(type='xavier'))
+    # n.s2 = L.Sigmoid(n.fc2, in_place=True)
+    # n.fc3 =   L.InnerProduct(n.fc2, num_output=300, weight_filler=dict(type='xavier'))
+    # n.s3 = L.Sigmoid(n.fc3, in_place=True)
     
     # n.fc4 =   L.InnerProduct(n.fc3, num_output=500, weight_filler=dict(type='xavier'))
     # n.s4 = L.Sigmoid(n.fc4, in_place=True)
@@ -180,7 +180,7 @@ def soundnet(batch_size, shape, deploy=False):
 
 
 
-    n.score = L.InnerProduct(n.fc3, num_output=30, weight_filler=dict(type='xavier'))
+    n.score = L.InnerProduct(n.fc1, num_output=30, weight_filler=dict(type='xavier'))
     
     if not deploy:
         n.loss = L.SoftmaxWithLoss(n.score, n.label)
@@ -200,8 +200,6 @@ def main():
     
 
     with open(filename + '_train.prototxt', 'w') as f:
-        print "time to shape: "
-        print time_to_shape(test_seconds, test_frames_per_second)
         f.write("force_backward : true\n" + str(soundnet(batch_size, time_to_shape(test_seconds, test_frames_per_second), False)))
     
     with open(filename + '_deploy.prototxt', 'w') as f:
@@ -215,13 +213,14 @@ def main():
     ### load the solver and create train and test nets
     solver = None  # ignore this workaround for lmdb data (can't instantiate two solvers on the same data)
     solver = caffe.SGDSolver(solver_file)
-    #solver.restore('soundnet/thirteen_10000.solverstate')
+    #solver.restore('soundnet/soundnet_iter_6400.solverstate')
 
     print "setting input arrays. input_data.shape:"
     print input_data.shape
     
     net = solver.net
     net.set_input_arrays(input_data, input_labels)
+
     testnet = solver.test_nets[0]
     testnet.set_input_arrays(test_data, test_labels)
 

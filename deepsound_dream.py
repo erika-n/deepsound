@@ -22,14 +22,15 @@ seconds = 3
 frames_per_second = 30
 channels = 1
 model_def = 'soundnet/layercake_deploy.prototxt'
-model_weights = 'soundnet/layercake_2400.caffemodel'
+model_weights = 'soundnet/soundnet_iter_6400.caffemodel'
 solver_file = 'soundnet/smallsolver.prototxt'
 restore_file = 'soundnet/small_iter_2500.solverstate'
 
 outfile = "will_it_dream.wav"
 
 def objective_L2(dst):
-	dst.diff[:] = dst.data 
+	dst.diff[:] = dst.data
+	#dst.data[0][:] = dst.data[0]*1e-6
 
 def make_step(net, mydata, step_size=200000, end='score',
 	 objective=objective_L2, label=None):
@@ -38,10 +39,10 @@ def make_step(net, mydata, step_size=200000, end='score',
 	
 	src = net.blobs['data'] # input image is stored in Net's 'data' blob
 	dst = net.blobs[end]
-
+	mid = net.blobs['fc1']
 
 	
-	src.data[0][:] = 0.01*mydata
+	src.data[0][:] = mydata
 
 
 
@@ -51,11 +52,11 @@ def make_step(net, mydata, step_size=200000, end='score',
 	# print "dst.data:"
 	# pprint(dst.data)
 	
-
 	objective(dst)  # specify the optimization objective 
-
+	mid.data[0][:] = mid.data[0]*0.99
 
 	if label:
+		dst.diff[:] = 0.1
 		dst.diff[0][label] = 100
 
 	net.backward(start=end) 
@@ -76,7 +77,7 @@ def make_step(net, mydata, step_size=200000, end='score',
 
 	
 
-	otherdata = ascent 
+	otherdata = ascent# + mydata
 	# print "otherdata: "
 	# pprint (otherdata)
 
@@ -107,12 +108,12 @@ def dream():
 	print 'predicted class is: ' + str(net.blobs['score'].data.argmax(1))
 	print 'real class is: ' + str(input_labels[0])
 
-	seed = np.zeros(input_data[-10].shape)
+	seed = input_data[5]
 	alldata = [seed]	
 
 	
 	l = 0
-	step = make_step(net, seed, end=end, label=l)
+	step = make_step(net, seed, end=end)
 
 	for i in range(steps):
 
@@ -123,7 +124,8 @@ def dream():
 			print "step " + str(i)
 
 			alldata += [ step ]
-		step = make_step(net, seed, end=end, label=l)
+		for j in range(1):
+			step = make_step(net, step, end=end)
 		l = l + 1
 
 		

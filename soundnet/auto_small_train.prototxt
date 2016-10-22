@@ -7,7 +7,7 @@ layer {
   memory_data_param {
     batch_size: 1
     channels: 1
-    height: 180
+    height: 30
     width: 1470
   }
 }
@@ -17,7 +17,7 @@ layer {
   bottom: "data"
   top: "fc1"
   inner_product_param {
-    num_output: 600
+    num_output: 1000
     weight_filler {
       type: "xavier"
     }
@@ -25,50 +25,14 @@ layer {
 }
 layer {
   name: "s1"
-  type: "Sigmoid"
+  type: "ReLU"
   bottom: "fc1"
   top: "fc1"
 }
 layer {
-  name: "fc2"
-  type: "InnerProduct"
-  bottom: "fc1"
-  top: "fc2"
-  inner_product_param {
-    num_output: 400
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "s2"
-  type: "Sigmoid"
-  bottom: "fc2"
-  top: "fc2"
-}
-layer {
-  name: "fc3"
-  type: "InnerProduct"
-  bottom: "fc2"
-  top: "fc3"
-  inner_product_param {
-    num_output: 300
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "s3"
-  type: "Sigmoid"
-  bottom: "fc3"
-  top: "fc3"
-}
-layer {
   name: "score"
   type: "InnerProduct"
-  bottom: "fc3"
+  bottom: "fc1"
   top: "score"
   inner_product_param {
     num_output: 30
