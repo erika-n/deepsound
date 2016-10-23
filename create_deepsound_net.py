@@ -12,7 +12,8 @@ import sys, getopt
 
 from pylab import *
 
-
+import lmdb
+from PIL import Image
 
 
 
@@ -24,6 +25,7 @@ test_seconds = 0.5
 #test_width = 100
 test_frames_per_second = 30
 num_per_song = 70
+
 
 solver_file = 'soundnet/smallsolver.prototxt'
 
@@ -47,6 +49,12 @@ def shuffle_in_unison_inplace(a, b):
     assert len(a) == len(b)
     p = np.random.permutation(len(a))
     return a[p], b[p]
+
+
+
+
+
+
 
 
 def preprocess_data():
@@ -100,8 +108,13 @@ def preprocess_data():
     test_data = input_data[0:numtests]
     input_data = input_data[numtests:]
 
-    test_labels = input_labels[0:numtests]
-    input_labels = input_labels[numtests:]
+    test_labels = np.roll(test_data, 1, axis=0)
+    input_labels = np.roll(input_data, 1, axis=0)
+
+
+        
+    # test_labels = input_labels[0:numtests]
+    # input_labels = input_labels[numtests:]
 
 
 
@@ -111,16 +124,28 @@ def preprocess_data():
     print "test, test labels shapes:"
     print test_data.shape
     print test_labels.shape
+    print "making databases..."
+    make_database(input_data, 'inputs_lmdb')
+    make_database(input_labels, 'labels_lmdb')
+    make_database(test_data, 'test_lmdb')
+    make_database(test_labels, 'test_labels_lmdb')
     
     
-    np.save('preprocessed_sound.npy', [input_data, input_labels, test_data, test_labels])
+    #np.save('preprocessed_sound.npy', [input_data, input_labels, test_data, test_labels])
+
+
+def make_database(inputs, name):
+    inputs = inputs.astype(float)
+    in_db = lmdb.open(name, map_size=int(1e12))
+    with in_db.begin(write=True) as in_txn:
+        for in_idx, in_ in enumerate(inputs):
+            im_dat = caffe.io.array_to_datum(in_)
+            in_txn.put('{:0>10d}'.format(in_idx), im_dat.SerializeToString())
+    in_db.close()
 
 
 
-
-
-def soundnet(batch_size, shape, deploy=False):
-    
+def soundnet(batch_size, shape, deploy=False, test=''):
 
     # our version of LeNet: a series of linear and simple nonlinear transformations
     n = caffe.NetSpec()
@@ -128,23 +153,22 @@ def soundnet(batch_size, shape, deploy=False):
     if(deploy):
         n.data = L.Input(shape=dict(dim=[1, 1, shape[0], shape[1]]))
     else:
-        n.data, n.label = L.MemoryData(batch_size=batch_size, channels=1, height=shape[0], width=shape[1], ntop=2)
+        n.label = L.Data(batch_size=1, backend=P.Data.LMDB, source=(test + 'labels_lmdb'), transform_param=dict(scale=1./30000000), ntop=1)
+        n.data = L.Data(batch_size=1, backend=P.Data.LMDB, source=(test + 'inputs_lmdb'), transform_param=dict(scale=1./30000000), ntop=1)    
+    
 
-    
-    
-    #n.magslice, n.phaseslice = L.Slice(n.data,axis=1, slice_point=[1], ntop=2 )
-    # n.pow = L.Power(n.data,scale=0.00001)
-    # n.conv1 = L.Convolution(n.pow, kernel_size=6, num_output=30, weight_filler=dict(type='xavier'))
-    # n.relu1 = L.ReLU(n.conv1, in_place=True)
-    # n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+  
+    n.conv1 = L.Convolution(n.data, kernel_size=6, num_output=30, weight_filler=dict(type='xavier'))
+    n.relu1 = L.ReLU(n.conv1, in_place=True)
+    n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
 
-    # n.conv2 = L.Convolution(n.pool1, kernel_size=6, num_output=30, weight_filler=dict(type='xavier'))
-    # n.relu2 = L.ReLU(n.conv2, in_place=True)
-    # n.pool2 = L.Pooling(n.conv2, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    n.conv2 = L.Convolution(n.pool1, kernel_size=4, num_output=10, weight_filler=dict(type='xavier'))
+    n.relu2 = L.ReLU(n.conv2, in_place=True)
+    n.pool2 = L.Pooling(n.relu2, kernel_size=2, stride=2, pool=P.Pooling.MAX)
     
-    # n.conv3 = L.Convolution(n.pool2, kernel_size=4, num_output=30, weight_filler=dict(type='xavier'))
-    # n.relu3= L.ReLU(n.conv3, in_place=True)
-    # n.pool3 = L.Pooling(n.conv3, kernel_size=2, stride=2, pool=P.Pooling.MAX)
+    n.conv3 = L.Convolution(n.pool2, kernel_size=4, num_output=30, weight_filler=dict(type='xavier'))
+    n.relu3= L.ReLU(n.conv3, in_place=True)
+    n.pool3 = L.Pooling(n.relu3, kernel_size=2, stride=2, pool=P.Pooling.MAX)
     #n.conv4 = L.Convolution(n.pool3, kernel_size=2, num_output=30, weight_filler=dict(type='xavier'))
     #n.pool4 = L.Pooling(n.conv4, kernel_size=2, stride=2, pool=P.Pooling.MAX)
     # n.conv5 = L.Convolution(n.pool4, kernel_size=3, num_output=30, weight_filler=dict(type='xavier'))
@@ -153,9 +177,7 @@ def soundnet(batch_size, shape, deploy=False):
 
     
 
-    # n.fc1 =   L.InnerProduct(n.pool3, num_output=1000, weight_filler=dict(type='xavier'))
-    # n.fc2 = L.InnerProduct(n.phaseslice, num_output = 1000,  weight_filler=dict(type='xavier'))
-    # n.concat = L.Concat(n.fc1, n.fc2)
+    n.fc1 =   L.InnerProduct(n.pool3, num_output=44100, weight_filler=dict(type='xavier'))
 
     # n.relu1 = L.ReLU(n.fc1, in_place=True)
 
@@ -163,12 +185,11 @@ def soundnet(batch_size, shape, deploy=False):
     
 
 
-    n.fc1 =  L.InnerProduct(n.data, num_output=1000, weight_filler=dict(type='xavier'))
-    n.s1 = L.ReLU(n.fc1, in_place=True)
+    # n.fc1 =  L.InnerProduct(n.data, num_output=1000, weight_filler=dict(type='xavier'))
+    # n.s1 = L.Sigmoid(n.fc1, in_place=True)
     # n.fc2 =   L.InnerProduct(n.fc1, num_output=400, weight_filler=dict(type='xavier'))
     # n.s2 = L.Sigmoid(n.fc2, in_place=True)
-    # n.fc3 =   L.InnerProduct(n.fc2, num_output=300, weight_filler=dict(type='xavier'))
-    # n.s3 = L.Sigmoid(n.fc3, in_place=True)
+    # n.fc3 =   L.InnerProduct(n.fc2, num_output=44100, weight_filler=dict(type='xavier'))
     
     # n.fc4 =   L.InnerProduct(n.fc3, num_output=500, weight_filler=dict(type='xavier'))
     # n.s4 = L.Sigmoid(n.fc4, in_place=True)
@@ -180,10 +201,10 @@ def soundnet(batch_size, shape, deploy=False):
 
 
 
-    n.score = L.InnerProduct(n.fc1, num_output=30, weight_filler=dict(type='xavier'))
+   
     
     if not deploy:
-        n.loss = L.SoftmaxWithLoss(n.score, n.label)
+        n.loss = L.SigmoidCrossEntropyLoss(n.fc1, n.label)
     return  n.to_proto()
     
 
@@ -201,7 +222,8 @@ def main():
 
     with open(filename + '_train.prototxt', 'w') as f:
         f.write("force_backward : true\n" + str(soundnet(batch_size, time_to_shape(test_seconds, test_frames_per_second), False)))
-    
+    with open(filename + '_test.prototxt', 'w') as f:
+        f.write("force_backward : true\n" + str(soundnet(batch_size, time_to_shape(test_seconds, test_frames_per_second), False, test='test_')))
     with open(filename + '_deploy.prototxt', 'w') as f:
         f.write("force_backward : true\n" + str(soundnet(batch_size, time_to_shape(test_seconds, test_frames_per_second), True)))
     
@@ -209,20 +231,20 @@ def main():
     print("writing " + filename)
 
 
-    [input_data, input_labels, test_data, test_labels] = np.load('preprocessed_sound.npy')
+    #[input_data, input_labels, test_data, test_labels] = np.load('preprocessed_sound.npy')
     ### load the solver and create train and test nets
     solver = None  # ignore this workaround for lmdb data (can't instantiate two solvers on the same data)
     solver = caffe.SGDSolver(solver_file)
     #solver.restore('soundnet/soundnet_iter_6400.solverstate')
 
-    print "setting input arrays. input_data.shape:"
-    print input_data.shape
+    # print "setting input arrays. input_data.shape:"
+    # print input_data.shape
     
     net = solver.net
-    net.set_input_arrays(input_data, input_labels)
+    # net.set_input_arrays(input_data, input_labels)
 
     testnet = solver.test_nets[0]
-    testnet.set_input_arrays(test_data, test_labels)
+    # testnet.set_input_arrays(test_data, test_labels)
 
 
     # print out the shapes of the blobs in the net
@@ -257,12 +279,12 @@ def main():
         # run a full test every so often
 
         
-        if it == 0 or it % test_interval == 0:
-            print 'Iteration', it, 'testing...'
-            print "Training set: "
-            test_net(solver.net, int_tests)
-            print "Test set:"
-            test_net(solver.test_nets[0], int_tests)
+        # if it == 0 or it % test_interval == 0:
+        #     print 'Iteration', it, 'testing...'
+        #     print "Training set: "
+        #     test_net(solver.net, int_tests)
+        #     print "Test set:"
+        #     test_net(solver.test_nets[0], int_tests)
         
         solver.step(1)  # SGD by Caffe
 
@@ -277,8 +299,8 @@ def test_net(net, numtests):
         print "hypothesis: " + str(net.blobs['score'].data.argmax(1))
         print "actual: " + str(net.blobs['label'].data)
         print "loss: " + str(net.blobs['loss'].data)
-        correct += sum(net.blobs['label'].data[0][0] == net.blobs['score'].data.argmax(1))
-        answers.append(net.blobs['score'].data.argmax(1))
+        # correct += sum(net.blobs['label'].data[0][0] == net.blobs['score'].data.argmax(1))
+        # answers.append(net.blobs['score'].data.argmax(1))
         # for google net:
         # print "hypothesis: " + str(solver.test_nets[0].blobs['loss1/classifier'].data.argmax(1))
         # print "top1:" + str(solver.test_nets[0].blobs['loss1/top-1'].data)

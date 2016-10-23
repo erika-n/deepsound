@@ -94,6 +94,7 @@ def save_wav(filename, allthedata):
         # phase = data[1]
 
         mag = data[:data.shape[0]/2]
+        mag = 0.0001*mag
         phase = data[data.shape[0]/2:]
 
 
@@ -109,7 +110,7 @@ def save_wav(filename, allthedata):
         # # Put data back in the right format
         
 
-        data = 0.05*data
+        data = 0.0005*data
         data = data.astype(np.int16)
         print data.shape
         print i
