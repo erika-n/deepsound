@@ -94,7 +94,7 @@ def save_wav(filename, allthedata):
         # phase = data[1]
 
         mag = data[:data.shape[0]/2]
-        mag = 0.0001*mag
+        mag = mag
         phase = data[data.shape[0]/2:]
 
 
@@ -105,18 +105,22 @@ def save_wav(filename, allthedata):
         data = np.reshape(data, (data.shape[0]*data.shape[1])) 
 
         
-        print "data: "
-        pprint(data)
-        # # Put data back in the right format
-        
 
-        data = 0.0005*data
+        # # Put data back in the right format
+        data = 10000.*data/(np.max(data))
+        print "data 1: "
+        pprint(data)        
+
+
         data = data.astype(np.int16)
         print data.shape
         print i
         print outdata.shape
 
-        outdata [i][:] = np.copy(data[:])
+        outdata[i] = data
+        print "data: "
+        pprint(data)
+        pprint(outdata[i])
 
         
     
@@ -150,8 +154,8 @@ def time_to_shape(seconds, frames_per_second):
 
 
 
-def get_raw(filename, seconds, label, max_out = 0, width=400, channels=2):
-
+def get_raw(filename, seconds, label, max_out = 0, frames_per_second=30, channels=1):
+    width = rate/frames_per_second
     allthedata = get_all_the_data(filename, seconds, max_out, width, channels)
     thelabel = np.array([label])
     labeldata = []

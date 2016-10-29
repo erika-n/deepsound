@@ -235,7 +235,7 @@ def main():
     ### load the solver and create train and test nets
     solver = None  # ignore this workaround for lmdb data (can't instantiate two solvers on the same data)
     solver = caffe.SGDSolver(solver_file)
-    #solver.restore('soundnet/soundnet_iter_6400.solverstate')
+    #solver.restore('soundnet/phantom_1000.solverstate')
 
     # print "setting input arrays. input_data.shape:"
     # print input_data.shape
