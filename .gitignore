@@ -1,0 +1,7 @@
+*.caffemodel
+*.solverstate
+*.wav
+*.prototxt
+*.pyc
+*.pickle
+*_lmdb
