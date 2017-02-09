@@ -9,6 +9,7 @@ import math
 import os
 from os import listdir
 from os.path import isfile, join
+from sklearn.preprocessing import normalize
 
 caffe_root = '/home/erika/projects/caffe/'  
 
@@ -29,6 +30,8 @@ def prepare_data(run_name):
 	test_instances = params['test_instances'] # number of tests for the test phase
 	training_instances = params['training_instances'] # training phase instances from each sound file.
 	fft = params['fft']
+	raw2d = params['raw2d']
+	raw2d_multiplier = params['raw2d_multiplier']
 
 
 	all_data = np.zeros((1,  data_dim[0], data_dim[1]))
@@ -37,7 +40,7 @@ def prepare_data(run_name):
 
 	files = [f for f in listdir(folder) if isfile(join(folder, f))]
 	for f in files:
-		data = process_file(folder + '/' + f, data_dim, training_instances, fft)
+		data = process_file(folder + '/' + f, data_dim, training_instances, fft, raw2d, raw2d_multiplier)
 		if(len(data) > 0):
 			code = int(f[:2])
 			labels = np.empty((data.shape[0]))
@@ -66,11 +69,16 @@ def prepare_data(run_name):
 	print "done shuffling."
 
 
+	clip = np.empty(all_data.shape)
+	clip.fill(1)
+	#clip = np.insert(clip, 1, 0, axis=3)
 
+	input_clip = clip[0:-test_instances]
 	input_data = all_data[0:-test_instances]
 	input_labels = all_labels[0:-test_instances]
 	test_data = all_data[-test_instances:]
 	test_labels = all_labels[-test_instances:]
+	test_clip = clip[-test_instances:]
 	print "input_data:"
 	print input_data.shape
 	print "input_labels:"
@@ -88,15 +96,37 @@ def prepare_data(run_name):
 	make_database(test_data, 'test_inputs_lmdb', data_dim)
 	make_database(input_data, 'inputs_lmdb', data_dim)
 	make_database(input_labels, 'labels_lmdb', 1)
+	#make_database(input_clip, 'clip_lmdb', 1)
+	#make_database(test_clip, 'test_clip_lmdb', 1)
 
     
 # process a file for use with the database
-def process_file(filename, data_dim, training_instances, fft=True):
+def process_file(filename, data_dim, training_instances, fft=True, raw2d=False, raw2d_multiplier=None):
 	print "processing file: " + filename
 	data = load_wav(filename)
 	h = data_dim[0]
-	w = data_dim[1]/2
+	w = data_dim[1]
 	
+
+
+
+	if(raw2d):
+		training_instances = min(training_instances, len(data)/w)
+		all_data = []
+		for t in range(training_instances):
+			all_data += [wav_to_raw2d(data[t*w:(t+1)*w], h, raw2d_multiplier)]
+		all_data = np.array(all_data, dtype=np.float32)
+		return all_data
+	if(not fft):
+		training_instances = min(training_instances, len(data)/w)
+		all_data = np.zeros((training_instances, h, w))
+		for t in range(training_instances):
+			for hh in range(h):
+				all_data[t][hh][:] = np.roll(data[t*w:(t+1)*w], hh)
+		all_data = np.array(all_data, dtype=np.float32)
+		print all_data.shape
+		return all_data
+	w = w/2
 	if(training_instances*w*h > len(data)):
 		training_instances = int(len(data)/(w*h))
 	
@@ -105,7 +135,7 @@ def process_file(filename, data_dim, training_instances, fft=True):
 	new_len = min(w*training_instances*h, len(data) - (len(data) % (training_instances*h)))
 
 	data = data[:new_len]
-	print data.shape
+
 	data.resize(len(data)/w, w)
 	if(fft):
 
@@ -115,7 +145,7 @@ def process_file(filename, data_dim, training_instances, fft=True):
 		phase = np.angle(fftdata)
 		data = np.concatenate((mag, phase), axis=1)
 
-	print data.shape
+
 	f =  data.shape[0]*data.shape[1]/(h*w*2)
 
 
@@ -145,10 +175,39 @@ def get_fft(data):
 
 
 def mag_phase_to_complex(mag, phase):
-    return np.array([mag[p]*np.exp(1.j*phase[p]) for p in range(0,len(mag))])
+	return np.array([mag[p]*np.exp(1.j*phase[p]) for p in range(0,len(mag))])
 
 
-def save_dream_wav(data, data_dim, filename):
+# def save_dream_wav(data, data_dim, filename):
+# 	print "data"
+# 	print len(data)
+# 	print "data_dim:"
+# 	print data_dim
+# 	h = data_dim[0]/2
+# 	w = data_dim[1]/2
+
+# 	total_data = np.empty(())
+# 	for i in range(len(data)):
+	
+# 		d = data[i][:]
+
+
+# 		for q in range(0, d.shape[0]):
+# 			dd = d[q][:]
+
+# 			dd = mag_phase_to_complex(dd[:w], dd[w:]) 
+# 			dd = np.fft.irfft(dd, w)
+
+# 			total_data = np.append(total_data, dd)
+
+# 			print total_data
+
+
+
+# 	save_wav(total_data, filename)
+
+
+def save_dream_wav(data, data_dim, filename, fft=True, raw2d=False, raw2d_multiplier=None):
 	print "data"
 	print len(data)
 	h = data_dim[0]
@@ -159,24 +218,72 @@ def save_dream_wav(data, data_dim, filename):
 		d = data[i][:]
 		print d.shape
 
-		for j in range(d.shape[0]):
-			dd = d[j][:]
-			#print dd.shape
-
-			dd = mag_phase_to_complex(dd[:w], dd[w:]) 
-			dd = np.fft.irfft(dd, w)
-		
-			#print dd.shape
-
-			#dd -= np.average(dd)
-			#dd *= (2**15-1.)/np.amax(dd)
+		if(raw2d):
+			dd = raw2d_to_wav(d, raw2d_multiplier)
 			total_data = np.append(total_data, dd)
+		else:
+			for j in range(d.shape[0]):
+				dd = d[j][:]
+				#print dd.shape
+				if(fft):
+					dd = mag_phase_to_complex(dd[:w], dd[w:]) 
+					dd = np.fft.irfft(dd, w)
+				
+					
+
+				#print dd.shape
+
+				#dd -= np.average(dd)
+				#dd *= (2**15-1.)/np.amax(dd)
+				total_data = np.append(total_data, dd)
 
 
 	print "total_data:"
 	print total_data.shape
 	save_wav(total_data, filename)
 
+
+# correct solution:
+def softmax(x):
+    """Compute softmax values for each sets of scores in x."""
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum(axis=0) # only difference
+
+# takes a 2d plot of raw audio and converts it back to raw
+def raw2d_to_wav(image, multiplier):
+
+	
+	rangeobj = np.empty(image.shape)
+	for r in range(rangeobj.shape[0]):
+		rangeobj[r][:]  = r
+	
+	raw = np.argmax(image, axis=0)
+
+	#raw = np.sum(softmax(image)*rangeobj,axis=0)
+
+
+	raw = (0.1/multiplier)*(raw - image.shape[0]/2) 
+	print raw
+	return raw
+
+
+# takes raw data and returns a 2d plot 
+def wav_to_raw2d(data, height, multiplier):
+	data = data*multiplier
+	data = data.astype(np.int16)
+	data += height/2 
+	data[data<0] = 0
+	data[data>=height] = height - 1
+	plot = np.zeros((height, data.size))
+	for d in range(data.size):
+		plot[data[d]][d] = 1
+	return plot
+
+def test_raw2d():
+	data = load_wav('/home/erika/Music/songsinmyhead/17vacation (2016_11_04 09_58_27 UTC).wav')
+	rawplot = wav_to_raw2d(data[500000:800000], 100, 0.001)
+	returning = raw2d_to_wav(rawplot, 0.001)
+	save_wav(returning, 'test_raw2d.wav')
 
 
 # saves sound data to file
@@ -241,6 +348,7 @@ def test_save_dream_wav():
 	save_dream_wav(inputs, data_dim, 'test_dream_wav.wav')
 
 
+
 if __name__ == "__main__":
-	print "testing save dream wav..."
-	test_save_dream_wav()
+	print "testing raw 2d..."
+	test_raw2d()
