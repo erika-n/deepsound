@@ -22,26 +22,21 @@ import pickle
 solver_file = 'soundnet/smallsolver.prototxt'
 
 
-
-caffe_root = '/home/erika/projects/caffe/'  
-
-import sys
-sys.path.insert(0, caffe_root + 'python')
 import caffe
 
 os.environ["GLOG_minloglevel"] = "4"
 
 from caffe import layers as L, params as P
 
-run_name = 'raw_again'
-run_description = 'lets make this work'
+run_name = 'autocorrelate'
+run_description = 'self obsession'
 folder = '/home/erika/Music/songsinmyhead/c'
-height = 10
-width = 10000 # how many samples to look at 
+height = 1
+width = 100 # how many samples to look at 
 batch_size = 50 
 num_tests= 200 # number of tests for the test phase
-training_instances = 150 # training phase instances from each sound file.
-fft = False
+training_instances = 10000 # training phase instances from each sound file.
+fft = False 
 raw2d = False
 raw2d_multiplier = 0.0008
 
@@ -59,7 +54,7 @@ def preprocess_data():
         'raw2d_multiplier': raw2d_multiplier
     }
 
-    with open(run_name + '.pickle', 'w') as f:  
+    with open('soundnet/' + run_name + '.pickle', 'w') as f:  
         pickle.dump(data_params, f)
 
     prepare_data(run_name)
@@ -79,7 +74,7 @@ def soundnet(batch_size, shape, deploy=False, test=''):
         #n.clip = L.Input(shape=dict(dim=[shape[0], shape[1]]))
         n.data = L.Data(batch_size=batch_size, backend=P.Data.LMDB, source=(test + 'inputs_lmdb'), ntop=1, transform_param={'scale':1} )    
 
-    # n.conv1 = L.Convolution(n.data, kernel_size=7, num_output=6, weight_filler=dict(type='xavier'))
+    # n.conv1 = L.Convolution(n.data, kernel_size=3, num_output=6, weight_filler=dict(type='xavier'))
     # n.relu1 = L.ReLU(n.conv1, in_place=True)
     # n.pool1 = L.Pooling(n.relu1, kernel_size=3, stride=1, pool=P.Pooling.MAX)
 
@@ -91,23 +86,23 @@ def soundnet(batch_size, shape, deploy=False, test=''):
 
     # n.lstm = L.LSTM(n.data,n.clip)
     # n.lrn = L.LRN(n.data, lrn_param=dict(norm_region=1))
-    n.fc1 =  L.InnerProduct(n.data, num_output=200, weight_filler=dict(type='xavier'))
+    # n.fc1 =  L.InnerProduct(n.data, num_output=200, weight_filler=dict(type='xavier'))
     
 
 
-    # n.fc1 = L.InnerProduct(n.pool2, num_output = 20, weight_filler=dict(type='xavier'))
+    n.fc1 = L.InnerProduct(n.data, num_output = width, weight_filler=dict(type='xavier'))
     n.s1 = L.TanH(n.fc1, in_place=True)
 
 
-    n.fc2 =  L.InnerProduct(n.s1, num_output=200, weight_filler=dict(type='xavier'))
-    n.s2 = L.TanH(n.fc2, in_place=True)    #n.s2 = L.Sigmoid(n.fc2, in_place=True)
-    n.fc3 =  L.InnerProduct(n.fc2, num_output=300, weight_filler=dict(type='xavier'))
-    n.s3 = L.Sigmoid(n.fc3, in_place=True)
+    # n.fc2 =  L.InnerProduct(n.s1, num_output=200, weight_filler=dict(type='xavier'))
+    # n.s2 = L.TanH(n.fc2, in_place=True)    #n.s2 = L.Sigmoid(n.fc2, in_place=True)
+    # n.fc3 =  L.InnerProduct(n.fc2, num_output=300, weight_filler=dict(type='xavier'))
+    # n.s3 = L.Sigmoid(n.fc3, in_place=True)
 
-    n.score = L.InnerProduct(n.fc1, num_output=10, weight_filler=dict(type='xavier'))
-    
+    n.score = L.InnerProduct(n.fc1, num_output=width*height, weight_filler=dict(type='xavier'))
+   
     if not deploy:
-        n.loss =  L.SoftmaxWithLoss(n.score, n.label)
+        n.loss =  L.EuclideanLoss(n.score, n.label)
  
     return  n.to_proto()
     
@@ -160,16 +155,16 @@ def main():
     print 'test labels:', solver.test_nets[0].blobs['label'].data[:]
 
 
-    niter = 100000
+    niter = 10000
     test_interval = 100
-    # losses will also be stored in the log
+
 
     int_tests = 1
     # the main solver loop
     for it in range(niter):
         
         #print "solving, iteration = " + str(it)
-        solver.step(1)  # SGD by Caffe
+        solver.step(100)  # SGD by Caffe
         
         # run a full test every so often
 
@@ -191,8 +186,9 @@ def test_it(net, numtests):
     for test_it in range(numtests):
         net.forward()
         # for lenet:
-        print "h: " + str(net.blobs['score'].data.argmax(1))
-        print "a: " + str(net.blobs['label'].data.flatten().astype(np.int16))
+        print "h: " + str(net.blobs['score'].data) #str(net.blobs['score'].data.argmax(1))
+        print "a: " + str(net.blobs['label'].data) #str(net.blobs['label'].data.flatten().astype(np.int16))
+        print "d: " + str(net.blobs['data'].data)
         # print "loss: " + str(net.blobs['loss'].data)
         loss = abs(net.blobs['loss'].data)
         correct = sum(net.blobs['label'].data.flatten().astype(np.int16) == net.blobs['score'].data.argmax(1))

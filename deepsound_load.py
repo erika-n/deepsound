@@ -21,7 +21,7 @@ import caffe
 
 def prepare_data(run_name):
 	
-	with open(run_name + '.pickle') as f:  
+	with open('soundnet/' + run_name + '.pickle') as f:  
 		params = pickle.load(f)
 
 	folder = params['folder']
@@ -32,6 +32,7 @@ def prepare_data(run_name):
 	fft = params['fft']
 	raw2d = params['raw2d']
 	raw2d_multiplier = params['raw2d_multiplier']
+	batch_size = params['batch_size']
 
 
 	all_data = np.zeros((1,  data_dim[0], data_dim[1]))
@@ -40,7 +41,7 @@ def prepare_data(run_name):
 
 	files = [f for f in listdir(folder) if isfile(join(folder, f))]
 	for f in files:
-		data = process_file(folder + '/' + f, data_dim, training_instances, fft, raw2d, raw2d_multiplier)
+		data = process_file(folder + '/' + f, data_dim, training_instances, fft, raw2d, raw2d_multiplier, batch_size)
 		if(len(data) > 0):
 			code = int(f[:2])
 			labels = np.empty((data.shape[0]))
@@ -49,9 +50,8 @@ def prepare_data(run_name):
 
 			all_labels = np.concatenate((all_labels, labels), axis=0)
 
-
 	all_data = all_data.reshape((all_data.shape[0], 1, data_dim[0], data_dim[1]))
-	all_labels = all_labels.reshape((all_labels.shape[0], 1, 1, 1))
+	all_labels = all_data[:] # EXPERIMENTAL: testing autocorrelation. #all_labels.reshape((all_labels.shape[0], 1, 1, 1))
 
 	print "all_data"
 	print all_data.shape
@@ -92,16 +92,16 @@ def prepare_data(run_name):
 	print "making databases..."
 
 
-	make_database(test_labels, 'test_labels_lmdb', 1)
-	make_database(test_data, 'test_inputs_lmdb', data_dim)
-	make_database(input_data, 'inputs_lmdb', data_dim)
-	make_database(input_labels, 'labels_lmdb', 1)
+	make_database(test_labels, 'test_labels_lmdb')
+	make_database(test_data, 'test_inputs_lmdb')
+	make_database(input_data, 'inputs_lmdb')
+	make_database(input_labels, 'labels_lmdb') 
 	#make_database(input_clip, 'clip_lmdb', 1)
 	#make_database(test_clip, 'test_clip_lmdb', 1)
 
     
 # process a file for use with the database
-def process_file(filename, data_dim, training_instances, fft=True, raw2d=False, raw2d_multiplier=None):
+def process_file(filename, data_dim, training_instances, fft=True, raw2d=False, raw2d_multiplier=None, batch_size=1):
 	print "processing file: " + filename
 	data = load_wav(filename)
 	h = data_dim[0]
@@ -126,34 +126,35 @@ def process_file(filename, data_dim, training_instances, fft=True, raw2d=False, 
 		all_data = np.array(all_data, dtype=np.float32)
 		print all_data.shape
 		return all_data
-	w = w/2
-	if(training_instances*w*h > len(data)):
-		training_instances = int(len(data)/(w*h))
-	
-	new_len = w*h*training_instances
+	else:
+		w = w/2
+		if(training_instances*w*h > len(data)):
+			training_instances = int(len(data)/(w*h))
+		
+		new_len = w*h*training_instances
 
-	new_len = min(w*training_instances*h, len(data) - (len(data) % (training_instances*h)))
+		new_len = min(w*training_instances*h, len(data) - (len(data) % (training_instances*h)))
 
-	data = data[:new_len]
+		data = data[:new_len]
 
-	data.resize(len(data)/w, w)
-	if(fft):
-
-
-		fftdata = np.fft.fft(data, data.shape[1], axis=1)
-		mag = np.absolute(fftdata)
-		phase = np.angle(fftdata)
-		data = np.concatenate((mag, phase), axis=1)
+		data.resize(len(data)/w, w)
+		if(fft):
 
 
-	f =  data.shape[0]*data.shape[1]/(h*w*2)
+			fftdata = np.fft.fft(data, data.shape[1], axis=1)
+			mag = np.absolute(fftdata)
+			phase = np.angle(fftdata)
+			data = np.concatenate((mag, phase), axis=1)
 
 
-	data =data.reshape(( f, h, w*2))
-	return data
+		f =  data.shape[0]*data.shape[1]/(h*w*2)
+
+
+		data =data.reshape(( f, h, w*2))
+		return data
 
 # make a lightning database
-def make_database(inputs, name, data_dim):
+def make_database(inputs, name):
 	raw_input("deleting and re-creating " + name + " [Y]")
 	os.system('rm -r ' + name)
 	in_db = lmdb.open(name, map_size=int(1e12))

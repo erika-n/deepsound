@@ -7,9 +7,6 @@ import pickle
 from deepsound_load import process_file, get_fft,  save_dream_wav
 
 import sys
-caffe_root = '/home/erika/projects/caffe/'  # this file should be run from {caffe_root}/examples (otherwise change this line)
-sys.path.insert(0, caffe_root + 'python')
-
 import caffe
 
 song = '/home/erika/Music/songsinmyhead/12oops (2016_10_31 12_42_24 UTC).wav'
@@ -18,7 +15,7 @@ skip = 1
 run_name = 'sketch'
 end = 'fc2'
 
-with open(run_name + '.pickle') as f:  
+with open('soundnet/' + run_name + '.pickle') as f:  
 	params = pickle.load(f)
 
 folder = params['folder']
