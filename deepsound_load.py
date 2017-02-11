@@ -49,7 +49,8 @@ def prepare_data(run_name):
 			all_data = np.concatenate((all_data, data), axis=0)
 
 			all_labels = np.concatenate((all_labels, labels), axis=0)
-
+	all_data = all_data*0.05
+	#all_data += 20.0
 	all_data = all_data.reshape((all_data.shape[0], 1, data_dim[0], data_dim[1]))
 	all_labels = all_data[:] # EXPERIMENTAL: testing autocorrelation. #all_labels.reshape((all_labels.shape[0], 1, 1, 1))
 
@@ -123,6 +124,7 @@ def process_file(filename, data_dim, training_instances, fft=True, raw2d=False, 
 		for t in range(training_instances):
 			for hh in range(h):
 				all_data[t][hh][:] = np.roll(data[t*w:(t+1)*w], hh)
+
 		all_data = np.array(all_data, dtype=np.float32)
 		print all_data.shape
 		return all_data

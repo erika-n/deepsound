@@ -32,10 +32,10 @@ run_name = 'autocorrelate'
 run_description = 'self obsession'
 folder = '/home/erika/Music/songsinmyhead/c'
 height = 1
-width = 100 # how many samples to look at 
-batch_size = 50 
-num_tests= 200 # number of tests for the test phase
-training_instances = 10000 # training phase instances from each sound file.
+width = 1000 # how many samples to look at 
+batch_size = 1 
+num_tests= 10 # number of tests for the test phase
+training_instances = 20# training phase instances from each sound file.
 fft = False 
 raw2d = False
 raw2d_multiplier = 0.0008
@@ -102,7 +102,7 @@ def soundnet(batch_size, shape, deploy=False, test=''):
     n.score = L.InnerProduct(n.fc1, num_output=width*height, weight_filler=dict(type='xavier'))
    
     if not deploy:
-        n.loss =  L.EuclideanLoss(n.score, n.label)
+        n.loss =  L.EuclideanLoss(n.score, n.label, loss_weight=1.0)
  
     return  n.to_proto()
     
@@ -186,19 +186,19 @@ def test_it(net, numtests):
     for test_it in range(numtests):
         net.forward()
         # for lenet:
-        print "h: " + str(net.blobs['score'].data) #str(net.blobs['score'].data.argmax(1))
-        print "a: " + str(net.blobs['label'].data) #str(net.blobs['label'].data.flatten().astype(np.int16))
-        print "d: " + str(net.blobs['data'].data)
-        # print "loss: " + str(net.blobs['loss'].data)
-        loss = abs(net.blobs['loss'].data)
-        correct = sum(net.blobs['label'].data.flatten().astype(np.int16) == net.blobs['score'].data.argmax(1))
-        answers.append(net.blobs['score'].data.argmax(1))
+        print "h: " + str(net.blobs['score'].data[0][0:10]) #str(net.blobs['score'].data.argmax(1))
+        print "a: " + str(net.blobs['label'].data[0][0][0][0:10]) #str(net.blobs['label'].data.flatten().astype(np.int16))
+       
+        # # print "loss: " + str(net.blobs['loss'].data)
+        # loss = abs(net.blobs['loss'].data)
+        # correct = sum(net.blobs['label'].data.flatten().astype(np.int16) == net.blobs['score'].data.argmax(1))
+        # answers.append(net.blobs['score'].data.argmax(1))
 
-        print str(correct)  + "/" + str(batch_size) + " correct (" + str(100*(batch_size - correct)/batch_size) + " percent error rate)"    
-        print "unique: " 
-        print np.unique(np.array(answers, dtype=np.int16))
-        print "loss:"
-        print loss
+        # print str(correct)  + "/" + str(batch_size) + " correct (" + str(100*(batch_size - correct)/batch_size) + " percent error rate)"    
+        # print "unique: " 
+        # print np.unique(np.array(answers, dtype=np.int16))
+        # print "loss:"
+        # print loss
       
 
 

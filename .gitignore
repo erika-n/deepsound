@@ -5,3 +5,5 @@
 *.pyc
 *.pickle
 *_lmdb
+*.aup
+*_data
