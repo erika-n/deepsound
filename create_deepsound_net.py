@@ -32,10 +32,10 @@ run_name = 'autocorrelate'
 run_description = 'self obsession'
 folder = '/home/erika/Music/songsinmyhead/c'
 height = 1
-width = 1000 # how many samples to look at 
+width = 100 # how many samples to look at 
 batch_size = 1 
 num_tests= 10 # number of tests for the test phase
-training_instances = 20# training phase instances from each sound file.
+training_instances = 100# training phase instances from each sound file.
 fft = False 
 raw2d = False
 raw2d_multiplier = 0.0008
@@ -90,7 +90,7 @@ def soundnet(batch_size, shape, deploy=False, test=''):
     
 
 
-    n.fc1 = L.InnerProduct(n.data, num_output = width, weight_filler=dict(type='xavier'))
+    n.fc1 = L.InnerProduct(n.data, num_output = 300, weight_filler=dict(type='xavier'))
     n.s1 = L.TanH(n.fc1, in_place=True)
 
 
@@ -156,7 +156,7 @@ def main():
 
 
     niter = 10000
-    test_interval = 100
+    test_interval = 10
 
 
     int_tests = 1

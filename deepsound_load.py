@@ -49,7 +49,7 @@ def prepare_data(run_name):
 			all_data = np.concatenate((all_data, data), axis=0)
 
 			all_labels = np.concatenate((all_labels, labels), axis=0)
-	all_data = all_data*0.05
+	#all_data = all_data*0.05
 	#all_data += 20.0
 	all_data = all_data.reshape((all_data.shape[0], 1, data_dim[0], data_dim[1]))
 	all_labels = all_data[:] # EXPERIMENTAL: testing autocorrelation. #all_labels.reshape((all_labels.shape[0], 1, 1, 1))
@@ -102,9 +102,10 @@ def prepare_data(run_name):
 
     
 # process a file for use with the database
-def process_file(filename, data_dim, training_instances, fft=True, raw2d=False, raw2d_multiplier=None, batch_size=1):
+def process_file(filename, data_dim, training_instances, fft=True, raw2d=False, raw2d_multiplier=None, batch_size=1, discard=100000):
 	print "processing file: " + filename
 	data = load_wav(filename)
+	data=data[discard:]
 	h = data_dim[0]
 	w = data_dim[1]
 	
