@@ -11,7 +11,7 @@ iter_size: 1
 # The base learning rate, momentum and the weight decay of the network.
 base_lr: 0.001
 momentum: 0.9
-weight_decay: 0.0001
+weight_decay: 0.0000001
 # The learning rate policy
 lr_policy: "inv"
 

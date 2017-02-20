@@ -101,13 +101,13 @@ def prepare_data(run_name):
 
     
 # process a file for use with the database
-def process_file(filename, data_dim, training_instances, fft=True, raw2d=False, raw2d_multiplier=None):
+def process_file(filename, data_dim, training_instances, fft=True, raw2d=False, raw2d_multiplier=None, offset=5000):
 	print "processing file: " + filename
 	data = load_wav(filename)
 	h = data_dim[0]
 	w = data_dim[1]
 	
-
+	data = data[offset:]
 
 
 	if(raw2d):
@@ -118,11 +118,18 @@ def process_file(filename, data_dim, training_instances, fft=True, raw2d=False, 
 		all_data = np.array(all_data, dtype=np.float32)
 		return all_data
 	if(not fft):
+		if(training_instances*w*h > len(data)):
+			training_instances = int(len(data)/(w*h))
+	
+		new_len = w*h*training_instances
+		new_len = min(w*training_instances*h, len(data) - (len(data) % (training_instances*h)))
+		data = data[:new_len]
 		training_instances = min(training_instances, len(data)/w)
 		all_data = np.zeros((training_instances, h, w))
 		for t in range(training_instances):
 			for hh in range(h):
-				all_data[t][hh][:] = np.roll(data[t*w:(t+1)*w], hh)
+
+				all_data[t][hh][:] = data[(t + hh)*w:(t + hh + 1)*w]
 		all_data = np.array(all_data, dtype=np.float32)
 		print all_data.shape
 		return all_data
@@ -207,40 +214,65 @@ def mag_phase_to_complex(mag, phase):
 # 	save_wav(total_data, filename)
 
 
-def save_dream_wav(data, data_dim, filename, fft=True, raw2d=False, raw2d_multiplier=None):
-	print "data"
+def save_dream_wav(data, data_dim, filename, fft=True, raw2d=False, raw2d_multiplier=None, seed_phase=None):
+	print "saving data of length:"
+
 	print len(data)
+	print "fft = " + str(fft)
 	h = data_dim[0]
 	w = data_dim[1]/2
-	total_data = np.empty(())
-	for i in range(len(data)):
-		print "i = " + str(i)
-		d = data[i][:]
-		print d.shape
+	total_data = np.zeros(1)
 
-		if(raw2d):
-			dd = raw2d_to_wav(d, raw2d_multiplier)
-			total_data = np.append(total_data, dd)
-		else:
-			for j in range(d.shape[0]):
-				dd = d[j][:]
-				#print dd.shape
-				if(fft):
-					dd = mag_phase_to_complex(dd[:w], dd[w:]) 
-					dd = np.fft.irfft(dd, w)
+	if(not fft and not raw2d):
+		
+		
+		# for l in range(len(data)):
+			
+		# 	d = data[l]
+		# 	for hh in range((d.shape[0])):
 				
-					
+		# 		dd = d[hh]
+		# 		total_data = np.concatenate((total_data, d[hh]))
+		
+		# print "total_data"
+		data = np.array(data)
+		print data.shape
+		save_wav( np.array(data).flatten(), filename)
+	else:
+		for i in range(len(data)):
+			print "i = " + str(i)
+			d = data[i][:]
+			print d.shape
 
-				#print dd.shape
-
-				#dd -= np.average(dd)
-				#dd *= (2**15-1.)/np.amax(dd)
+			if(raw2d):
+				dd = raw2d_to_wav(d, raw2d_multiplier)
 				total_data = np.append(total_data, dd)
+			elif(fft):
+				for j in range(d.shape[0]):
+					dd = d[j][:]
+					#print dd.shape
+					if(fft):
+						if(seed_phase == None):
+							seed_phase = dd[:]
+						dd = mag_phase_to_complex(dd[:], seed_phase) 
+						dd = np.fft.irfft(dd, w)
+					
+						
+
+					#print dd.shape
+
+					#dd -= np.average(dd)
+					#dd *= (2**15-1.)/np.amax(dd)
+					dd = 100*dd
+					#print(dd[0:10])
+					total_data = np.concatenate((total_data, dd))
+			
 
 
-	print "total_data:"
-	print total_data.shape
-	save_wav(total_data, filename)
+		print "total_data:"
+		print total_data.shape
+
+		save_wav(total_data, filename)
 
 
 # correct solution:

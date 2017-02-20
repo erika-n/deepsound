@@ -4,7 +4,7 @@ from pprint import pprint
 from shutil import copyfile
 import getopt
 import pickle
-from deepsound_load import process_file, get_fft,  save_dream_wav
+from deepsound_load import process_file, get_fft,  load_wav, save_dream_wav
 
 import sys
 caffe_root = '/home/erika/projects/caffe/'  # this file should be run from {caffe_root}/examples (otherwise change this line)
@@ -12,12 +12,11 @@ sys.path.insert(0, caffe_root + 'python')
 
 import caffe
 
-song = '/home/erika/Music/songsinmyhead/12oops (2016_10_31 12_42_24 UTC).wav'
-steps = 150
+song = '/home/erika/Music/songsinmyhead/d/88mysteriousways (2016_11_06 21_28_43 UTC).wav'
+steps =10
 skip = 1
-run_name = 'sketch'
-end = 'fc2'
-
+run_name = 'raw_conv_relu'
+end = 'fc1'
 with open(run_name + '.pickle') as f:  
 	params = pickle.load(f)
 
@@ -55,8 +54,8 @@ def get_weight_vector(net, i):
 	return v*10e7
 
 
-def make_step(net, mydata, step_size=0.1, end='score',
-	 objective=objective_L2, label=2, bias=None):
+def make_step(net, mydata, step_size=1000, end='score',
+	 objective=objective_L2, label=None, bias=None):
 	'''Basic gradient ascent step.'''
 
 	# if bias: # set bias of first layer to zero except for the given one-- an experiment.
@@ -67,7 +66,7 @@ def make_step(net, mydata, step_size=0.1, end='score',
 	dst = net.blobs[end]
 
 	
-	src.data[0][:] = mydata
+	src.data[0][:] = 0.01*mydata
 
 
 
@@ -82,7 +81,8 @@ def make_step(net, mydata, step_size=0.1, end='score',
 
 	if label:
 		dst.diff[:] = 0
-		dst.diff[0][label] = 100
+		for l in label:
+			dst.diff[0][l] = 100
 
 
 
@@ -92,6 +92,8 @@ def make_step(net, mydata, step_size=0.1, end='score',
 
 	g = src.diff[0]
 
+	print "g:"
+	pprint(g)
 	# print "g: "
 	# pprint(g)
 
@@ -105,11 +107,11 @@ def make_step(net, mydata, step_size=0.1, end='score',
 
 	
 
-	otherdata = ascent 
+	otherdata = ascent
 	# print "otherdata: "
 	# pprint (otherdata)
 
-	return otherdata.copy()
+	return (otherdata.copy(), dst.data.copy())
 	
 
 def dream():
@@ -120,13 +122,20 @@ def dream():
 	net = caffe.Net(model_def, model_weights, caffe.TRAIN)     
 
 
-	input_data = process_file(song, data_dim, 10, fft=fft, raw2d=raw2d, raw2d_multiplier=raw2d_multiplier)
+
+	input_data = process_file(song, data_dim, 500, fft=fft, raw2d=raw2d, raw2d_multiplier=raw2d_multiplier)
+
+
 
 	code = int('08')
 	input_labels = np.array([code]*len(input_data))
 	input_labels = input_labels.resize((input_labels.size, 1, 1, 1))
 
 	input_data = np.array(input_data, dtype=np.float32)
+
+	song_wav = load_wav(song)
+	(mag, seed_phase) = get_fft(song_wav[10000:10000+data_dim[1]])
+	
 	print "input_data:"
 	print input_data.shape
 	print net.blobs['data'].data.shape
@@ -147,32 +156,41 @@ def dream():
 	# 	alldata += [arr]
 
 
-	seed = input_data[1]
+	seed = input_data[100]
+
 	
-	alldata = [seed]
-	seed = np.zeros(seed.shape) #this seems like an interesting thing to do
+	seed = 10*(np.random.random_sample(seed.shape) - 0.5) #this seems like an interesting thing to do
+	#seed = np.zeros(seed.shape)
+	seed = 0.8*seed
 	print "seed:"
 	print seed.shape
+	print seed[0][100:110]
+
+	alldata = [seed]
 
 	
 	l = 0
-	step = make_step(net, seed, end=end)
 
-	for i in range(steps):
-
-		
-
-		if(i %skip == 0):
-			
-			print "step " + str(i)
-			print step.shape
-			alldata += [ step[0] ]
-		for j in range(1):
-			step = make_step(net, step, end=end)
-		l = l + 1
+	(step, outa) = make_step(net, seed, end=end)
 
 	
-	save_dream_wav(alldata, data_dim, outfile, raw2d=raw2d, raw2d_multiplier=raw2d_multiplier)
+	for i in range(steps):
+
+		print "step " + str(i)
+		if(i %skip == 0):
+			
+			
+		
+			alldata += [ step[0]]
+		for j in range(1):
+			(step, outa) = make_step(net, step, end=end, label=[2]) 
+		l = l + 1
+
+
+	print "alldata.shape:"
+	print np.array(alldata[1]).shape
+	
+	save_dream_wav(alldata, step.shape, outfile, fft=fft, raw2d=raw2d, raw2d_multiplier=raw2d_multiplier, seed_phase=None)
 
 
 

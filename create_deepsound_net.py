@@ -33,14 +33,14 @@ os.environ["GLOG_minloglevel"] = "4"
 
 from caffe import layers as L, params as P
 
-run_name = 'raw_again'
-run_description = 'lets make this work'
-folder = '/home/erika/Music/songsinmyhead/c'
-height = 10
-width = 10000 # how many samples to look at 
+run_name = 'raw_layered'
+run_description = 'trying raw again'
+folder = '/home/erika/Music/songsinmyhead/d'
+height = 100
+width = 1000 # how many samples to look at 
 batch_size = 50 
-num_tests= 200 # number of tests for the test phase
-training_instances = 150 # training phase instances from each sound file.
+num_tests= 10 # number of tests for the test phase
+training_instances = 200 # training phase instances from each sound file.
 fft = False
 raw2d = False
 raw2d_multiplier = 0.0008
@@ -79,9 +79,9 @@ def soundnet(batch_size, shape, deploy=False, test=''):
         #n.clip = L.Input(shape=dict(dim=[shape[0], shape[1]]))
         n.data = L.Data(batch_size=batch_size, backend=P.Data.LMDB, source=(test + 'inputs_lmdb'), ntop=1, transform_param={'scale':1} )    
 
-    # n.conv1 = L.Convolution(n.data, kernel_size=7, num_output=6, weight_filler=dict(type='xavier'))
-    # n.relu1 = L.ReLU(n.conv1, in_place=True)
-    # n.pool1 = L.Pooling(n.relu1, kernel_size=3, stride=1, pool=P.Pooling.MAX)
+    #n.conv1 = L.Convolution(n.data, kernel_size=3, num_output=1, weight_filler=dict(type='xavier'))
+    #n.relu1 = L.TanH(n.conv1, in_place=True)
+    #n.pool1 = L.Pooling(n.relu1, kernel_size=3, stride=1, pool=P.Pooling.MAX)
 
 
     # n.conv2 = L.Convolution(n.pool1, kernel_size=3, num_output=3, weight_filler=dict(type='xavier'))
@@ -91,21 +91,20 @@ def soundnet(batch_size, shape, deploy=False, test=''):
 
     # n.lstm = L.LSTM(n.data,n.clip)
     # n.lrn = L.LRN(n.data, lrn_param=dict(norm_region=1))
-    n.fc1 =  L.InnerProduct(n.data, num_output=200, weight_filler=dict(type='xavier'))
+    n.fc1 =  L.InnerProduct(n.data, num_output=3000, weight_filler=dict(type='xavier'))
     
-
 
     # n.fc1 = L.InnerProduct(n.pool2, num_output = 20, weight_filler=dict(type='xavier'))
     n.s1 = L.TanH(n.fc1, in_place=True)
 
 
-    n.fc2 =  L.InnerProduct(n.s1, num_output=200, weight_filler=dict(type='xavier'))
+    n.fc2 =  L.InnerProduct(n.s1, num_output=2000, weight_filler=dict(type='xavier'))
     n.s2 = L.TanH(n.fc2, in_place=True)    #n.s2 = L.Sigmoid(n.fc2, in_place=True)
-    n.fc3 =  L.InnerProduct(n.fc2, num_output=300, weight_filler=dict(type='xavier'))
-    n.s3 = L.Sigmoid(n.fc3, in_place=True)
+    n.fc3 =  L.InnerProduct(n.fc2, num_output=1000, weight_filler=dict(type='xavier'))
+    n.s3 = L.TanH(n.fc3, in_place=True)
 
-    n.score = L.InnerProduct(n.fc1, num_output=10, weight_filler=dict(type='xavier'))
-    
+    n.score = L.InnerProduct(n.fc3, num_output=100, weight_filler=dict(type='xavier'))
+   
     if not deploy:
         n.loss =  L.SoftmaxWithLoss(n.score, n.label)
  
